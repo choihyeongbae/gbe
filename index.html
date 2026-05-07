@@ -292,37 +292,47 @@ function revGeo(){
 }
 
 /* ── WMS (safemap 커스텀 방식) ── */
-// safemap WMS는 일반 GetMap이 아닌 bbox+serviceKey 직접 요청 방식
-const SafemapWMS = L.TileLayer.extend({
-  initialize: function(url, options){
-    L.TileLayer.prototype.initialize.call(this, url, options);
-  },
+// EPSG:4326용 (여성밤길, 노인, 어린이) - layers 파라미터 없음
+const SafemapWMS4326 = L.TileLayer.extend({
   getTileUrl: function(coords){
-    const bounds = this._tileCoordsToBounds(coords);
-    const bbox = [
-      bounds.getWest().toFixed(10),
-      bounds.getSouth().toFixed(10),
-      bounds.getEast().toFixed(10),
-      bounds.getNorth().toFixed(10)
-    ].join(',');
+    const b = this._tileCoordsToBounds(coords);
+    const bbox = [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');
     return this._url
       + '?serviceKey=' + API_KEY
       + '&srs=EPSG:4326'
       + '&bbox=' + bbox
-      + '&format=image/png'
-      + '&width=256&height=256'
-      + '&transparent=TRUE';
+      + '&format=image/png&width=256&height=256&transparent=TRUE';
+  }
+});
+
+// EPSG:3857용 (CCTV) - layers 파라미터 있음, 좌표계 변환 필요
+const SafemapWMS3857 = L.TileLayer.extend({
+  getTileUrl: function(coords){
+    const b = this._tileCoordsToBounds(coords);
+    // WGS84 → EPSG:3857(미터) 변환
+    function to3857x(lng){ return lng * 20037508.34 / 180; }
+    function to3857y(lat){
+      return Math.log(Math.tan((90+lat)*Math.PI/360)) / (Math.PI/180) * 20037508.34 / 180;
+    }
+    const bbox = [
+      to3857x(b.getWest()), to3857y(b.getSouth()),
+      to3857x(b.getEast()), to3857y(b.getNorth())
+    ].join(',');
+    return this._url
+      + '?serviceKey=' + API_KEY
+      + '&layers=A2SM_CCTV_INFO'
+      + '&styles='
+      + '&srs=EPSG:3857'
+      + '&bbox=' + bbox
+      + '&format=image/png&width=256&height=256&transparent=TRUE';
   }
 });
 
 function addWMS(){
   GROUP[grp].wms.forEach(key=>{
     try{
-      const t = new SafemapWMS(WMS_API[key], {
-        opacity: 0.45,
-        tileSize: 256,
-        attribution: '생활안전지도'
-      });
+      const TileClass = key==='cctv' ? SafemapWMS3857 : SafemapWMS4326;
+      const t = new TileClass(WMS_API[key], {opacity:0.5, tileSize:256});
       t.addTo(map); wmsTiles[key]=t;
     }catch(e){console.warn('WMS 오류',key,e);}
   });
