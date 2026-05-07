@@ -290,16 +290,40 @@ function revGeo(){
     }).catch(()=>{document.getElementById('locTxt').textContent='위치 확인됨';});
 }
 
-/* ── WMS ── */
+/* ── WMS (safemap 커스텀 방식) ── */
+// safemap WMS는 일반 GetMap이 아닌 bbox+serviceKey 직접 요청 방식
+const SafemapWMS = L.TileLayer.extend({
+  initialize: function(url, options){
+    L.TileLayer.prototype.initialize.call(this, url, options);
+  },
+  getTileUrl: function(coords){
+    const bounds = this._tileCoordsToBounds(coords);
+    const bbox = [
+      bounds.getWest().toFixed(10),
+      bounds.getSouth().toFixed(10),
+      bounds.getEast().toFixed(10),
+      bounds.getNorth().toFixed(10)
+    ].join(',');
+    return this._url
+      + '?serviceKey=' + API_KEY
+      + '&srs=EPSG:4326'
+      + '&bbox=' + bbox
+      + '&format=image/png'
+      + '&width=256&height=256'
+      + '&transparent=TRUE';
+  }
+});
+
 function addWMS(){
   GROUP[grp].wms.forEach(key=>{
     try{
-      const t=L.tileLayer.wms(WMS_API[key],{
-        authKey:API_KEY,layers:'SafeMap_WmsLayer',
-        format:'image/png',transparent:true,opacity:0.4,version:'1.1.1'
+      const t = new SafemapWMS(WMS_API[key], {
+        opacity: 0.45,
+        tileSize: 256,
+        attribution: '생활안전지도'
       });
       t.addTo(map); wmsTiles[key]=t;
-    }catch(e){console.warn('WMS',key,e);}
+    }catch(e){console.warn('WMS 오류',key,e);}
   });
 }
 
@@ -397,29 +421,26 @@ function mkMarker(key,lat,lng,it){
 /* ── 목업 (API 실패 시) ── */
 function mockLayer(key){
   const m=LAYER[key], lg=L.layerGroup();
-  const n={bell:9,police:3,child_house:5}[key]||5;
-  let cnt=0;
-  // 내 위치 주변에 고르게 배치
+  const n={bell:9,police:4,child_house:5}[key]||5;
+  // near() 체크 없이 내 위치 주변 원형 배치
   for(let i=0;i<n;i++){
     const angle=(i/n)*2*Math.PI;
-    const dist=0.003+Math.random()*0.006;
+    const dist=0.002+i*0.001; // 200m~1km 이내
     const lat=myLat+dist*Math.cos(angle);
-    const lng=myLng+dist*Math.sin(angle);
-    if(!near(lat,lng))continue;
+    const lng=myLng+dist*Math.sin(angle)*1.3; // 경도 스케일 보정
     const icon=L.divIcon({
-      html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);">${m.emoji}</div>`,
+      html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px dashed ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);opacity:0.8;">${m.emoji}</div>`,
       className:'',iconSize:[36,36],iconAnchor:[18,18]
     });
     L.marker([lat,lng],{icon}).bindPopup(
       L.popup({className:'safepopup',closeButton:true}).setContent(`
-        <div class="pbadge" style="background:${m.color}18;color:${m.color}">${m.emoji} ${m.label}</div>
-        <div class="ptitle">${m.label} (샘플)</div>
-        <div class="prow" style="color:#f59e0b">⚠ API 승인 후 실제 데이터 표시</div>
+        <div class="pbadge" style="background:#fef3c718;color:#d97706">⚠ 샘플 데이터</div>
+        <div class="ptitle">${m.label} ${i+1}호</div>
+        <div class="prow" style="color:#f59e0b">API 승인 후 실제 위치로 교체됩니다</div>
       `)
     ).addTo(lg);
-    cnt++;
   }
-  lg.addTo(map); layers[key]=lg; counts[key]=cnt;
+  lg.addTo(map); layers[key]=lg; counts[key]=n;
   if(!chipOn[key])map.removeLayer(lg);
 }
 
