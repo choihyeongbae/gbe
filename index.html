@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.1</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.2</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -153,12 +153,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 const API_KEY = 'EYQ7ZKD8-EYQ7-EYQ7-EYQ7-EYQ7ZKD8HA';
 const R_KM = 1.0;
 
-// XML API (좌표 필드명은 API 확인 후 업데이트 필요)
-const XML_API = {
-  bell:       'https://safemap.go.kr/openapi2/IF_0032',
-  police:     'https://safemap.go.kr/openapi2/IF_0036',
-  child_house:'https://safemap.go.kr/openapi2/IF_0055',
-  cpted:      'https://safemap.go.kr/openapi2/IF_0023',
+// safemap 내부 마커 API
+const MARKER_API = 'https://safemap.go.kr/layer/getMarkerLayerPost.json';
+const LAYER_API = {
+  bell:       {layer:'A2SM_CMMNPOI_EMGBELL', style:'A2SM_CMMNPOI_EMGBELL'},
+  police:     {layer:'A2SM_CMMNPOI2',        style:'A2SM_CmmnPoi2'},
+  child_house:{layer:'A2SM_CMMNPOI',         style:'A2SM_CMMNPOI_05'},
 };
 
 // WMS API
