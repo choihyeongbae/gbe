@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.3</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.4</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -381,8 +381,17 @@ async function fetchLayer(key){
     if(layers[key])map.removeLayer(layers[key]);
     const lg=L.layerGroup(); let cnt=0;
     items.forEach(it=>{
-      const lat=parseFloat(it.lat||0);
-      const lng=parseFloat(it.lon||0);
+      let lat=parseFloat(it.lat||0);
+      let lng=parseFloat(it.lon||0);
+      // lat/lon 없으면 x,y(EPSG:3857) → WGS84 변환
+      if(!lat||!lng){
+        const px=parseFloat(it.x||0);
+        const py=parseFloat(it.y||0);
+        if(px&&py){
+          const pt=L.CRS.EPSG3857.unproject(L.point(px,py));
+          lat=pt.lat; lng=pt.lng;
+        }
+      }
       if(!lat||!lng||isNaN(lat)||isNaN(lng))return;
       if(!near(lat,lng))return;
       mkMarker(key,lat,lng,it).addTo(lg); cnt++;
