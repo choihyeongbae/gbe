@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.4</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.5</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -274,8 +274,12 @@ function onLocated(){
   revGeo();
   addWMS();
   fetchAll();
-  // 지도 이동/줌 시 데이터 새로고침
-  map.on('moveend', ()=>fetchAll());
+  // 지도 이동/줌 시 데이터 새로고침 (debounce 500ms)
+  let moveTimer=null;
+  map.on('moveend',()=>{
+    clearTimeout(moveTimer);
+    moveTimer=setTimeout(()=>fetchAll(),500);
+  });
 }
 
 function drawMe(){
@@ -342,9 +346,11 @@ function addWMS(){
 
 /* ── XML 데이터 ── */
 async function fetchAll(){
-  document.getElementById('loadTxt').textContent='안전시설 데이터 불러오는 중...';
+  // 기존 레이어 먼저 제거
+  GROUP[grp].xml.forEach(k=>{
+    if(layers[k]){map.removeLayer(layers[k]);layers[k]=null;}
+  });
   await Promise.allSettled(GROUP[grp].xml.map(k=>fetchLayer(k)));
-  document.getElementById('loading').classList.add('hide');
   updateStats();
 }
 
@@ -378,7 +384,6 @@ async function fetchLayer(key){
     const data=await res.json();
     const items=data.resultList||[];
     if(items.length===0)throw new Error('no items');
-    if(layers[key])map.removeLayer(layers[key]);
     const lg=L.layerGroup(); let cnt=0;
     items.forEach(it=>{
       let lat=parseFloat(it.lat||0);
