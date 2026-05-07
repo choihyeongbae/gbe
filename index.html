@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.0.7</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.0.8</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -158,7 +158,11 @@ const XML_API = {
   bell:       'https://safemap.go.kr/openapi2/IF_0032',
   police:     'https://safemap.go.kr/openapi2/IF_0036',
   child_house:'https://safemap.go.kr/openapi2/IF_0055',
+  cpted:      'https://safemap.go.kr/openapi2/IF_0023',
 };
+// CORS 프록시 (safemap.go.kr XML API는 브라우저 직접 호출 CORS 차단)
+const PROXY = 'https://corsproxy.io/?';
+function proxied(url){ return PROXY + encodeURIComponent(url); }
 // WMS API
 const WMS_API = {
   women:    'https://safemap.go.kr/openapi2/IF_0080_WMS',
@@ -168,9 +172,10 @@ const WMS_API = {
 };
 
 const LAYER = {
-  bell:       {label:'안전비상벨',      color:'#0891b2', emoji:'🔔'},
-  police:     {label:'치안시설',        color:'#7c3aed', emoji:'🚔'},
-  child_house:{label:'아동안전지킴이집', color:'#059669', emoji:'🏠'},
+  bell:       {label:'안전비상벨',        color:'#0891b2', emoji:'🔔'},
+  police:     {label:'치안시설',          color:'#7c3aed', emoji:'🚔'},
+  child_house:{label:'아동안전지킴이집',   color:'#059669', emoji:'🏠'},
+  cpted:      {label:'범죄예방환경설계',   color:'#b45309', emoji:'🏗'},
 };
 const WMS_LAYER = {
   women:    {label:'여성밤길안전',   color:'#db2777'},
@@ -179,7 +184,7 @@ const WMS_LAYER = {
   cctv:     {label:'CCTV',          color:'#2563eb'},
 };
 const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house'], wms:['children','cctv'], special:'child_house'},
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cpted'], wms:['children','cctv'], special:'child_house'},
   youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police'],              wms:['women','cctv'],    special:null},
   elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police'],              wms:['elder_c','cctv'],  special:null},
 };
@@ -344,7 +349,8 @@ async function fetchAll(){
 }
 
 async function fetchLayer(key){
-  const url=XML_API[key]+'?serviceKey='+API_KEY+'&pageNo=1&numOfRows=1000&returnType=XML';
+  const rawUrl=XML_API[key]+'?serviceKey='+API_KEY+'&pageNo=1&numOfRows=1000&returnType=XML';
+  const url=proxied(rawUrl);
   try{
     const ctrl=new AbortController();
     setTimeout(()=>ctrl.abort(),8000);
@@ -363,6 +369,9 @@ async function fetchLayer(key){
       if(key==='bell'){
         lat=parseFloat(xv(it,'lat')||0);
         lng=parseFloat(xv(it,'lon')||0);
+      }else if(key==='cpted'){
+        // CPTED는 별도 좌표 필드 없음 → 건너뜀
+        return;
       }else{
         lng=parseFloat(xv(it,'x')||xv(it,'tmp_x')||0);
         lat=parseFloat(xv(it,'y')||xv(it,'tmp_y')||0);
@@ -409,11 +418,18 @@ function mkMarker(key,lat,lng,it){
     extra=(tp?`<span style="color:#7c3aed">${tp}</span> `:'')+
           (tel?`<span style="color:#64748b">📞 ${tel}</span>`:'');
   }else if(key==='child_house'){
-    // 아동안전지킴이집 필드: fclty_nm(시설명), rn_adres(도로명), telno(전화번호)
     name=xv(it,'fclty_nm')||'아동안전지킴이집';
     addr=xv(it,'rn_adres')||xv(it,'adres')||'';
     const tel=xv(it,'telno')||'';
     extra='<span style="color:#059669">🏠 아동 보호</span>'+(tel?` <span style="color:#64748b">📞 ${tel}</span>`:'');
+  }else if(key==='cpted'){
+    // CPTED 필드: roadnm_add(도로명), dsign_prps(디자인종류), jp_nm(지구대명)
+    name=xv(it,'roadnm_add')||xv(it,'jibun_addr')||'범죄예방환경설계';
+    addr=xv(it,'roadnm_add')||'';
+    const tp=xv(it,'dsign_prps')||'';
+    const jp=xv(it,'jp_nm')||'';
+    extra=(tp?`<span style="color:#b45309">${tp}</span> `:'')+
+          (jp?`<span style="color:#64748b">📍 ${jp}</span>`:'');
   }
   const icon=L.divIcon({
     html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);">${m.emoji}</div>`,
