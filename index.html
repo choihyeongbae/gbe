@@ -163,6 +163,7 @@ const WMS_API = {
   women:    'https://safemap.go.kr/openapi2/IF_0080_WMS',
   elder_c:  'https://safemap.go.kr/openapi2/IF_0082_WMS',
   children: 'https://safemap.go.kr/openapi2/IF_0081_WMS',
+  cctv:     'https://safemap.go.kr/openapi2/IF_0131_WMS',
 };
 
 const LAYER = {
@@ -305,19 +306,19 @@ const SafemapWMS4326 = L.TileLayer.extend({
   }
 });
 
-// EPSG:3857용 (CCTV) - layers 파라미터 있음, 좌표계 변환 필요
+// EPSG:3857용 (CCTV) - Leaflet 내장 CRS 변환 사용
 const SafemapWMS3857 = L.TileLayer.extend({
   getTileUrl: function(coords){
-    const b = this._tileCoordsToBounds(coords);
-    // WGS84 → EPSG:3857(미터) 변환
-    function to3857x(lng){ return lng * 20037508.34 / 180; }
-    function to3857y(lat){
-      return Math.log(Math.tan((90+lat)*Math.PI/360)) / (Math.PI/180) * 20037508.34 / 180;
-    }
-    const bbox = [
-      to3857x(b.getWest()), to3857y(b.getSouth()),
-      to3857x(b.getEast()), to3857y(b.getNorth())
-    ].join(',');
+    const map = this._map;
+    const tileSize = this.getTileSize();
+    const nwPoint = coords.scaleBy(tileSize);
+    const sePoint = nwPoint.add([tileSize.x, tileSize.y]);
+    const nwLatLng = map.unproject(nwPoint, coords.z);
+    const seLatLng = map.unproject(sePoint, coords.z);
+    // Leaflet 내장 EPSG:3857 변환
+    const nw3857 = L.CRS.EPSG3857.project(nwLatLng);
+    const se3857 = L.CRS.EPSG3857.project(seLatLng);
+    const bbox = [nw3857.x, se3857.y, se3857.x, nw3857.y].join(',');
     return this._url
       + '?serviceKey=' + API_KEY
       + '&layers=A2SM_CCTV_INFO'
