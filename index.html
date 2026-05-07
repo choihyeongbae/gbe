@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.7</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.9</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -159,6 +159,7 @@ const LAYER_API = {
   bell:       {layer:'A2SM_CMMNPOI_EMGBELL', style:'A2SM_CMMNPOI_EMGBELL'},
   police:     {layer:'A2SM_CMMNPOI2',        style:'A2SM_CmmnPoi2'},
   child_house:{layer:'A2SM_CMMNPOI',         style:'A2SM_CMMNPOI_05'},
+  cctv:       {layer:'A2SM_CCTV_INFO',       style:'A2SM_CCTV_INFO'},
 };
 
 // WMS API
@@ -174,6 +175,7 @@ const LAYER = {
   police:     {label:'치안시설',          color:'#7c3aed', emoji:'🚔'},
   child_house:{label:'아동안전지킴이집',   color:'#059669', emoji:'🏠'},
   cpted:      {label:'범죄예방환경설계',   color:'#b45309', emoji:'🏗'},
+  cctv:       {label:'CCTV',             color:'#2563eb', emoji:'📷'},
 };
 const WMS_LAYER = {
   women:    {label:'여성밤길안전',   color:'#db2777'},
@@ -182,9 +184,9 @@ const WMS_LAYER = {
   cctv:     {label:'CCTV',          color:'#2563eb'},
 };
 const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house'], wms:['children','cctv'], special:'child_house'},
-  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police'],              wms:['women','cctv'],    special:null},
-  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police'],              wms:['elder_c','cctv'],  special:null},
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children'], special:'child_house'},
+  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','cctv'],        wms:['women'],           special:null},
+  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police','cctv'],        wms:['elder_c'],         special:null},
 };
 
 /* ── 상태 ── */
@@ -209,6 +211,7 @@ function start(){
 function goBack(){
   document.getElementById('intro').classList.remove('out');
   document.getElementById('map-screen').classList.remove('show');
+  if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}
   if(map){map.remove();map=null;}
   layers={};wmsTiles={};chipOn={};counts={};
 }
@@ -259,11 +262,22 @@ function toggleWMS(key){
 }
 
 /* ── GPS ── */
+let watchId=null;
 function getGPS(){
   if(!navigator.geolocation){useDefault();return;}
+  // 첫 위치 받기
   navigator.geolocation.getCurrentPosition(
     p=>{myLat=p.coords.latitude;myLng=p.coords.longitude;onLocated();},
     ()=>useDefault(),{timeout:7000,enableHighAccuracy:true}
+  );
+  // 실시간 위치 추적
+  watchId=navigator.geolocation.watchPosition(
+    p=>{
+      myLat=p.coords.latitude;myLng=p.coords.longitude;
+      drawMe(); // 아이콘만 업데이트 (지도 이동 없음)
+    },
+    ()=>{},
+    {enableHighAccuracy:true,maximumAge:3000}
   );
 }
 function useDefault(){myLat=36.0190;myLng=129.3435;onLocated();}
@@ -437,6 +451,15 @@ function mkMarker(key,lat,lng,it){
     const tp=xv(it,'fclty_ty')||'';
     const tel=xv(it,'telno')||'';
     extra=(tp?`<span style="color:#7c3aed">${tp}</span> `:'')+
+          (tel?`<span style="color:#64748b">📞 ${tel}</span>`:'');
+  }else if(key==='cctv'){
+    name=xv(it,'TITLE')||xv(it,'title')||'CCTV';
+    addr=xv(it,'lctn_rona_addr')||xv(it,'lctn_lotno_addr')||'';
+    const prps=xv(it,'instl_prps_se')||'';
+    const cnt=xv(it,'cmr_cntom')||'';
+    const tel=xv(it,'mng_inst_telno')||'';
+    extra=(prps?`<span style="color:#2563eb">${prps}</span> `:'')+
+          (cnt?`<span style="color:#64748b">📷 ${cnt}대</span> `:'')+
           (tel?`<span style="color:#64748b">📞 ${tel}</span>`:'');
   }else if(key==='child_house'){
     name=xv(it,'fclty_nm')||'아동안전지킴이집';
