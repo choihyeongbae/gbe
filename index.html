@@ -5,216 +5,198 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SafeWalk · 내 주변 안전지도</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-:root {
-  --navy:#060d1a; --navy2:#0e1e35; --blue:#1a6eff; --cyan:#00d4ff;
-  --green:#00e676; --orange:#ff9800; --pink:#ff4081; --yellow:#ffea00;
-  --purple:#b388ff; --white:#e8f0fe; --gray:#607080;
-  --card-bg:rgba(14,30,53,0.95);
+:root{
+  --bg:#f0f4fa; --white:#ffffff; --navy:#1a2540; --blue:#2563eb;
+  --cyan:#0891b2; --green:#059669; --orange:#ea580c; --pink:#db2777;
+  --gray:#64748b; --gray2:#e2e8f0; --card:rgba(255,255,255,0.92);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--white);}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--navy);}
 
-#intro{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);transition:opacity .6s ease,transform .6s ease;}
-#intro.out{opacity:0;transform:scale(1.06);pointer-events:none;}
-.intro-bg{position:absolute;inset:0;overflow:hidden;}
-.intro-bg::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(26,110,255,.2) 0%,transparent 70%);top:-100px;left:-100px;animation:bgpulse 4s ease-in-out infinite alternate;}
-.intro-bg::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,.15) 0%,transparent 70%);bottom:-50px;right:-50px;animation:bgpulse 5s ease-in-out infinite alternate-reverse;}
-@keyframes bgpulse{from{transform:scale(1);}to{transform:scale(1.3);}}
-.intro-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding:0 28px;width:100%;max-width:440px;animation:fadeup .8s ease both;}
-@keyframes fadeup{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
-.live-badge{display:flex;align-items:center;gap:7px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25);border-radius:100px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:.1em;margin-bottom:32px;}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:blink 1.4s infinite;}
+/* INTRO */
+#intro{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#e8f0fe 0%,#f0f9ff 50%,#fef3c7 100%);transition:opacity .5s,transform .5s;}
+#intro.out{opacity:0;transform:scale(1.05);pointer-events:none;}
+.intro-content{display:flex;flex-direction:column;align-items:center;padding:0 28px;width:100%;max-width:420px;animation:fadeup .7s ease both;}
+@keyframes fadeup{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);border-radius:100px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.08em;margin-bottom:28px;}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:blink 1.4s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
-.app-name{font-size:52px;font-weight:900;letter-spacing:-.03em;line-height:1;margin-bottom:8px;background:linear-gradient(135deg,#ffffff 30%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.app-sub{font-size:15px;color:var(--gray);margin-bottom:48px;font-weight:400;}
-.section-label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--gray);text-transform:uppercase;margin-bottom:16px;align-self:flex-start;}
-.age-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;margin-bottom:28px;}
-.age-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px 8px;border-radius:20px;border:1.5px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer;transition:all .25s ease;position:relative;overflow:hidden;}
-.age-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;}
-.age-card[data-group="child"]::before{background:linear-gradient(135deg,rgba(0,230,118,.12),rgba(0,212,255,.08));}
-.age-card[data-group="youth"]::before{background:linear-gradient(135deg,rgba(255,64,129,.12),rgba(179,136,255,.08));}
-.age-card[data-group="elder"]::before{background:linear-gradient(135deg,rgba(255,152,0,.12),rgba(255,234,0,.08));}
-.age-card:hover,.age-card.selected{border-color:rgba(255,255,255,.3);transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.4);}
-.age-card:hover::before,.age-card.selected::before{opacity:1;}
-.age-icon{font-size:32px;}
-.age-name{font-size:13px;font-weight:700;}
+.app-name{font-size:48px;font-weight:900;letter-spacing:-.03em;color:var(--navy);margin-bottom:6px;}
+.app-name span{color:var(--blue);}
+.app-sub{font-size:14px;color:var(--gray);margin-bottom:44px;}
+.section-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--gray);text-transform:uppercase;margin-bottom:14px;align-self:flex-start;}
+.age-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:24px;}
+.age-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 8px;border-radius:18px;border:2px solid var(--gray2);background:var(--white);cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.age-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1);}
+.age-card.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.age-card.selected[data-group="child"]{border-color:var(--green);}
+.age-card.selected[data-group="youth"]{border-color:var(--pink);}
+.age-card.selected[data-group="elder"]{border-color:var(--orange);}
+.age-icon{font-size:30px;}
+.age-name{font-size:13px;font-weight:700;color:var(--navy);}
 .age-desc{font-size:10px;color:var(--gray);text-align:center;line-height:1.4;}
-.age-card[data-group="child"] .age-name{color:#00e676;}
-.age-card[data-group="youth"] .age-name{color:#ff4081;}
-.age-card[data-group="elder"] .age-name{color:#ff9800;}
-.start-btn{width:100%;padding:18px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s ease;opacity:.4;pointer-events:none;box-shadow:0 8px 24px rgba(26,110,255,.3);}
-.start-btn.active{opacity:1;pointer-events:auto;}
-.start-btn.active:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(26,110,255,.4);}
+.start-btn{width:100%;padding:16px;border-radius:14px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;opacity:.35;pointer-events:none;font-family:'Noto Sans KR',sans-serif;}
+.start-btn.on{opacity:1;pointer-events:auto;}
+.start-btn.on:hover{background:#1d4ed8;transform:translateY(-1px);}
 
+/* MAP SCREEN */
 #map-screen{position:fixed;inset:0;display:none;flex-direction:column;}
 #map-screen.show{display:flex;}
 #map{flex:1;width:100%;}
 
-.topbar{position:absolute;top:0;left:0;right:0;z-index:500;padding:14px 16px 0;display:flex;align-items:center;gap:10px;pointer-events:none;}
-.back-btn{pointer-events:auto;width:40px;height:40px;border-radius:12px;background:var(--card-bg);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;backdrop-filter:blur(12px);transition:background .2s;}
-.back-btn:hover{background:rgba(26,110,255,.3);}
-.topbar-info{pointer-events:auto;flex:1;background:var(--card-bg);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:8px 14px;backdrop-filter:blur(12px);display:flex;align-items:center;gap:8px;}
-.group-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:100px;letter-spacing:.05em;}
-.group-tag.child{background:rgba(0,230,118,.2);color:#00e676;}
-.group-tag.youth{background:rgba(255,64,129,.2);color:#ff4081;}
-.group-tag.elder{background:rgba(255,152,0,.2);color:#ff9800;}
+/* TOPBAR */
+.topbar{position:absolute;top:0;left:0;right:0;z-index:500;padding:12px 14px 0;display:flex;gap:8px;align-items:center;pointer-events:none;}
+.icon-btn{pointer-events:auto;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;}
+.icon-btn:hover{background:#dbeafe;}
+.topbar-info{pointer-events:auto;flex:1;background:var(--card);border:1px solid var(--gray2);border-radius:13px;padding:8px 13px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;}
+.group-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
+.group-tag.child{background:#d1fae5;color:#065f46;}
+.group-tag.youth{background:#fce7f3;color:#9d174d;}
+.group-tag.elder{background:#ffedd5;color:#9a3412;}
 .topbar-loc{font-size:12px;color:var(--gray);}
-.gps-btn{pointer-events:auto;width:40px;height:40px;border-radius:12px;background:var(--card-bg);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:background .2s;}
-.gps-btn:hover{background:rgba(0,212,255,.2);}
 
-.layer-panel{position:absolute;bottom:0;left:0;right:0;z-index:500;padding:0 16px 20px;pointer-events:none;}
-.layer-scroll{pointer-events:auto;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;scrollbar-width:none;}
-.layer-scroll::-webkit-scrollbar{display:none;}
-.layer-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:100px;background:var(--card-bg);border:1.5px solid rgba(255,255,255,.1);backdrop-filter:blur(12px);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s ease;white-space:nowrap;opacity:.45;}
-.layer-chip.active{opacity:1;border-color:rgba(255,255,255,.25);}
-.chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-
-.stats-bar{pointer-events:auto;background:var(--card-bg);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px 16px;backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;}
-.stat-item{display:flex;flex-direction:column;align-items:center;gap:2px;}
+/* LAYER PANEL */
+.layer-panel{position:absolute;bottom:0;left:0;right:0;z-index:500;padding:0 14px 18px;pointer-events:none;}
+.chips{pointer-events:auto;display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:9px;scrollbar-width:none;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;transition:all .2s;white-space:nowrap;opacity:.55;}
+.chip.on{opacity:1;color:var(--navy);}
+.chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.stats-bar{pointer-events:auto;background:var(--card);border:1px solid var(--gray2);border-radius:16px;padding:12px 16px;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:space-between;}
+.stat-item{display:flex;flex-direction:column;align-items:center;gap:1px;}
 .stat-num{font-size:20px;font-weight:900;}
-.stat-label{font-size:10px;color:var(--gray);font-weight:500;}
-.stat-div{width:1px;height:32px;background:rgba(255,255,255,.08);}
+.stat-lbl{font-size:10px;color:var(--gray);font-weight:500;}
+.stat-div{width:1px;height:30px;background:var(--gray2);}
 
-.custom-popup .leaflet-popup-content-wrapper{background:var(--card-bg)!important;border:1px solid rgba(255,255,255,.15)!important;border-radius:16px!important;color:var(--white)!important;backdrop-filter:blur(16px);box-shadow:0 16px 48px rgba(0,0,0,.6)!important;}
-.custom-popup .leaflet-popup-content{margin:14px 16px!important;color:var(--white);}
-.custom-popup .leaflet-popup-tip{background:var(--navy2)!important;}
-.popup-title{font-size:14px;font-weight:700;margin-bottom:6px;}
-.popup-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray);margin-top:4px;}
-.popup-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-bottom:8px;display:inline-block;}
+/* POPUP */
+.safepopup .leaflet-popup-content-wrapper{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);color:var(--navy);}
+.safepopup .leaflet-popup-content{margin:12px 15px;}
+.safepopup .leaflet-popup-tip{background:#fff;}
+.safepopup .leaflet-popup-close-button{color:var(--gray);}
+.ptitle{font-size:14px;font-weight:700;margin-bottom:5px;}
+.prow{font-size:12px;color:var(--gray);margin-top:3px;display:flex;align-items:center;gap:5px;}
+.pbadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-bottom:7px;}
 
-#loading{position:fixed;inset:0;z-index:2000;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;}
+/* LOADING */
+#loading{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s;}
 #loading.hide{opacity:0;pointer-events:none;}
-.spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
+.spin{width:44px;height:44px;border:3px solid var(--gray2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.loading-text{font-size:14px;color:var(--gray);font-weight:500;}
-
-.leaflet-tile{filter:brightness(.85) saturate(.9);}
-.leaflet-control-zoom{display:none;}
+.load-txt{font-size:13px;color:var(--gray);font-weight:500;}
 </style>
 </head>
 <body>
 
 <div id="loading">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loadingText">위치 정보를 불러오는 중...</div>
+  <div class="spin"></div>
+  <div class="load-txt" id="loadTxt">불러오는 중...</div>
 </div>
 
 <div id="intro">
-  <div class="intro-bg"></div>
   <div class="intro-content">
-    <div class="live-badge"><span class="dot"></span>LIVE SAFETY MAP</div>
-    <div class="app-name">SafeWalk</div>
-    <div class="app-sub">내 주변 안전 인프라 한눈에</div>
-    <div class="section-label">나는 누구인가요?</div>
+    <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
+    <div class="app-name">Safe<span>Walk</span></div>
+    <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
+    <div class="section-lbl">나는 누구인가요?</div>
     <div class="age-cards">
-      <div class="age-card" data-group="child" onclick="selectGroup(this)">
+      <div class="age-card" data-group="child" onclick="pick(this)">
         <div class="age-icon">🧒</div>
         <div class="age-name">아동</div>
         <div class="age-desc">초등학생<br>이하</div>
       </div>
-      <div class="age-card" data-group="youth" onclick="selectGroup(this)">
+      <div class="age-card" data-group="youth" onclick="pick(this)">
         <div class="age-icon">🚶‍♀️</div>
         <div class="age-name">청소년</div>
         <div class="age-desc">중·고등<br>학생</div>
       </div>
-      <div class="age-card" data-group="elder" onclick="selectGroup(this)">
+      <div class="age-card" data-group="elder" onclick="pick(this)">
         <div class="age-icon">👴</div>
         <div class="age-name">노인</div>
         <div class="age-desc">65세<br>이상</div>
       </div>
     </div>
-    <button class="start-btn" id="startBtn" onclick="startMap()">📍 내 주변 안전지도 보기</button>
+    <button class="start-btn" id="startBtn" onclick="start()">📍 내 주변 안전지도 보기</button>
   </div>
 </div>
 
 <div id="map-screen">
   <div id="map"></div>
   <div class="topbar">
-    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="icon-btn" onclick="goBack()">←</div>
     <div class="topbar-info">
-      <span class="group-tag" id="groupTag"></span>
-      <span class="topbar-loc" id="locText">위치 확인 중...</span>
+      <span class="group-tag" id="gTag"></span>
+      <span class="topbar-loc" id="locTxt">위치 확인 중...</span>
     </div>
-    <div class="gps-btn" onclick="moveToMyLocation()">📍</div>
+    <div class="icon-btn" onclick="flyHome()">📍</div>
   </div>
   <div class="layer-panel">
-    <div class="layer-scroll" id="layerChips"></div>
+    <div class="chips" id="chips"></div>
     <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-num" id="statBell" style="color:#00d4ff">-</div>
-        <div class="stat-label">비상벨</div>
-      </div>
+      <div class="stat-item"><div class="stat-num" id="s1" style="color:#0891b2">-</div><div class="stat-lbl">비상벨</div></div>
       <div class="stat-div"></div>
-      <div class="stat-item">
-        <div class="stat-num" id="statPolice" style="color:#b388ff">-</div>
-        <div class="stat-label">치안시설</div>
-      </div>
+      <div class="stat-item"><div class="stat-num" id="s2" style="color:#7c3aed">-</div><div class="stat-lbl">치안시설</div></div>
       <div class="stat-div"></div>
-      <div class="stat-item">
-        <div class="stat-num" id="statSpecial" style="color:#00e676">-</div>
-        <div class="stat-label">특화시설</div>
-      </div>
+      <div class="stat-item"><div class="stat-num" id="s3" style="color:#059669">-</div><div class="stat-lbl">특화시설</div></div>
       <div class="stat-div"></div>
-      <div class="stat-item">
-        <div class="stat-num" style="color:#ff9800">1km</div>
-        <div class="stat-label">반경</div>
-      </div>
+      <div class="stat-item"><div class="stat-num" style="color:#ea580c">1km</div><div class="stat-lbl">반경</div></div>
     </div>
   </div>
 </div>
 
 <script>
+/* ── 설정 ── */
 const API_KEY = 'EYQ7ZKD8-EYQ7-EYQ7-EYQ7-EYQ7ZKD8HA';
-const RADIUS_KM = 1.0;
+const R_KM = 1.0;
 
-const API_XML = {
+// XML API (좌표 필드명은 API 확인 후 업데이트 필요)
+const XML_API = {
   bell:       'https://safemap.go.kr/openapi2/IF_0032',
   police:     'https://safemap.go.kr/openapi2/IF_0036',
   child_house:'https://safemap.go.kr/openapi2/IF_0055',
 };
-const WMS_URLS = {
+// WMS API
+const WMS_API = {
   women:    'https://safemap.go.kr/openapi2/IF_0080_WMS',
-  elder:    'https://safemap.go.kr/openapi2/IF_0082_WMS',
+  elder_c:  'https://safemap.go.kr/openapi2/IF_0082_WMS',
   children: 'https://safemap.go.kr/openapi2/IF_0081_WMS',
 };
-const WMS_META = {
-  women:    { label:'여성밤길안전',   color:'#ff4081' },
-  elder:    { label:'노인범죄주의',   color:'#ff9800' },
-  children: { label:'어린이범죄주의', color:'#ffea00' },
+
+const LAYER = {
+  bell:       {label:'안전비상벨',      color:'#0891b2', emoji:'🔔'},
+  police:     {label:'치안시설',        color:'#7c3aed', emoji:'🚔'},
+  child_house:{label:'아동안전지킴이집', color:'#059669', emoji:'🏠'},
 };
-const LAYER_META = {
-  bell:       { label:'안전비상벨',      color:'#00d4ff', emoji:'🔔' },
-  police:     { label:'치안시설',        color:'#b388ff', emoji:'🚔' },
-  child_house:{ label:'아동안전지킴이집', color:'#00e676', emoji:'🏠' },
+const WMS_LAYER = {
+  women:    {label:'여성밤길안전',   color:'#db2777'},
+  elder_c:  {label:'노인범죄주의',   color:'#ea580c'},
+  children: {label:'어린이범죄주의', color:'#ca8a04'},
 };
-const GROUP_CONFIG = {
-  child: { label:'아동', color:'#00e676', emoji:'🧒',
-    xmlLayers:['bell','police','child_house'], wmsLayers:['children'], specialKey:'child_house' },
-  youth: { label:'청소년', color:'#ff4081', emoji:'🚶‍♀️',
-    xmlLayers:['bell','police'], wmsLayers:['women'], specialKey:null },
-  elder: { label:'노인', color:'#ff9800', emoji:'👴',
-    xmlLayers:['bell','police'], wmsLayers:['elder'], specialKey:null },
+const GROUP = {
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house'], wms:['children'], special:'child_house'},
+  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police'],              wms:['women'],    special:null},
+  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police'],              wms:['elder_c'],  special:null},
 };
 
-let map, myMarker, myLat, myLng, selectedGroup=null;
-let activeLayers={}, activeWMS={}, chipsState={}, markerCounts={bell:0,police:0,child_house:0};
+/* ── 상태 ── */
+let map, myMark, myLat, myLng, grp=null;
+let layers={}, wmsTiles={}, chipOn={}, counts={bell:0,police:0,child_house:0};
 
-function selectGroup(el){
+/* ── 인트로 ── */
+function pick(el){
   document.querySelectorAll('.age-card').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
-  selectedGroup=el.dataset.group;
-  document.getElementById('startBtn').classList.add('active');
+  grp=el.dataset.group;
+  document.getElementById('startBtn').classList.add('on');
 }
 
-function startMap(){
+function start(){
   document.getElementById('intro').classList.add('out');
   document.getElementById('map-screen').classList.add('show');
   document.getElementById('loading').classList.remove('hide');
-  document.getElementById('loading').style.display='flex';
   initMap();
 }
 
@@ -222,229 +204,238 @@ function goBack(){
   document.getElementById('intro').classList.remove('out');
   document.getElementById('map-screen').classList.remove('show');
   if(map){map.remove();map=null;}
-  activeLayers={};activeWMS={};markerCounts={bell:0,police:0,child_house:0};
+  layers={};wmsTiles={};counts={bell:0,police:0,child_house:0};
 }
 
+/* ── 지도 ── */
 function initMap(){
-  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([36.5,127.8],7);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(map);
+  map = L.map('map',{zoomControl:false,attributionControl:false}).setView([36.5,127.8],7);
+  // 밝은 지도 타일
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    {maxZoom:19,subdomains:'abcd'}).addTo(map);
   buildChips();
-  getMyLocation();
+  getGPS();
 }
 
 function buildChips(){
-  const cfg=GROUP_CONFIG[selectedGroup];
-  const container=document.getElementById('layerChips');
-  container.innerHTML='';
-
-  cfg.xmlLayers.forEach(key=>{
-    const m=LAYER_META[key];
-    chipsState[key]=true;
-    const chip=document.createElement('div');
-    chip.className='layer-chip active';
-    chip.id='chip_'+key;
-    chip.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>${m.emoji} ${m.label}`;
-    chip.onclick=()=>toggleLayer(key);
-    container.appendChild(chip);
+  const g=GROUP[grp], c=document.getElementById('chips');
+  c.innerHTML='';
+  g.xml.forEach(key=>{
+    const m=LAYER[key]; chipOn[key]=true;
+    const el=document.createElement('div');
+    el.className='chip on'; el.id='c_'+key;
+    el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>${m.emoji} ${m.label}`;
+    el.onclick=()=>toggleXML(key);
+    c.appendChild(el);
   });
-
-  cfg.wmsLayers.forEach(key=>{
-    const m=WMS_META[key];
-    chipsState['w_'+key]=true;
-    const chip=document.createElement('div');
-    chip.className='layer-chip active';
-    chip.id='chip_w_'+key;
-    chip.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>🗺 ${m.label}`;
-    chip.onclick=()=>toggleWMS(key);
-    container.appendChild(chip);
+  g.wms.forEach(key=>{
+    const m=WMS_LAYER[key]; chipOn['w_'+key]=true;
+    const el=document.createElement('div');
+    el.className='chip on'; el.id='c_w_'+key;
+    el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>🗺 ${m.label}`;
+    el.onclick=()=>toggleWMS(key);
+    c.appendChild(el);
   });
-
-  const tag=document.getElementById('groupTag');
-  const cfg2=GROUP_CONFIG[selectedGroup];
-  tag.textContent=cfg2.emoji+' '+cfg2.label;
-  tag.className='group-tag '+selectedGroup;
+  const t=document.getElementById('gTag'), g2=GROUP[grp];
+  t.textContent=g2.emoji+' '+g2.label;
+  t.className='group-tag '+grp;
 }
 
-function toggleLayer(key){
-  chipsState[key]=!chipsState[key];
-  document.getElementById('chip_'+key).classList.toggle('active',chipsState[key]);
-  if(activeLayers[key]){
-    chipsState[key]?map.addLayer(activeLayers[key]):map.removeLayer(activeLayers[key]);
-  }
+function toggleXML(key){
+  chipOn[key]=!chipOn[key];
+  document.getElementById('c_'+key).classList.toggle('on',chipOn[key]);
+  if(layers[key]) chipOn[key]?map.addLayer(layers[key]):map.removeLayer(layers[key]);
 }
 function toggleWMS(key){
-  chipsState['w_'+key]=!chipsState['w_'+key];
-  document.getElementById('chip_w_'+key).classList.toggle('active',chipsState['w_'+key]);
-  if(activeWMS[key]){
-    chipsState['w_'+key]?map.addLayer(activeWMS[key]):map.removeLayer(activeWMS[key]);
-  }
+  chipOn['w_'+key]=!chipOn['w_'+key];
+  document.getElementById('c_w_'+key).classList.toggle('on',chipOn['w_'+key]);
+  if(wmsTiles[key]) chipOn['w_'+key]?map.addLayer(wmsTiles[key]):map.removeLayer(wmsTiles[key]);
 }
 
-function getMyLocation(){
-  if(!navigator.geolocation){fallback();return;}
+/* ── GPS ── */
+function getGPS(){
+  if(!navigator.geolocation){useDefault();return;}
   navigator.geolocation.getCurrentPosition(
-    pos=>{myLat=pos.coords.latitude;myLng=pos.coords.longitude;onReady();},
-    ()=>fallback(),{timeout:8000,enableHighAccuracy:true}
+    p=>{myLat=p.coords.latitude;myLng=p.coords.longitude;onLocated();},
+    ()=>useDefault(),{timeout:7000,enableHighAccuracy:true}
   );
 }
-function fallback(){myLat=36.0190;myLng=129.3435;onReady();}
+function useDefault(){myLat=36.0190;myLng=129.3435;onLocated();}
 
-function onReady(){
+function onLocated(){
   map.setView([myLat,myLng],15);
-  placeMe();
-  reverseGeo();
+  drawMe();
+  revGeo();
   addWMS();
-  loadAll();
+  fetchAll();
 }
 
-function placeMe(){
-  if(myMarker)map.removeLayer(myMarker);
-  const cfg=GROUP_CONFIG[selectedGroup];
+function drawMe(){
+  if(myMark)map.removeLayer(myMark);
+  const g=GROUP[grp];
   const icon=L.divIcon({
-    html:`<div style="width:44px;height:44px;border-radius:50%;background:${cfg.color}22;border:3px solid ${cfg.color};display:flex;align-items:center;justify-content:center;font-size:20px;animation:mp 2s infinite;"></div><style>@keyframes mp{0%,100%{box-shadow:0 0 0 8px ${cfg.color}22;}50%{box-shadow:0 0 0 18px ${cfg.color}11;}}</style>`,
-    className:'',iconSize:[44,44],iconAnchor:[22,22]
+    html:`<div style="width:42px;height:42px;border-radius:50%;background:${g.color};border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 3px 12px rgba(0,0,0,.25);">${g.emoji}</div>`,
+    className:'',iconSize:[42,42],iconAnchor:[21,21]
   });
-  myMarker=L.marker([myLat,myLng],{icon,zIndexOffset:1000}).addTo(map);
+  myMark=L.marker([myLat,myLng],{icon,zIndexOffset:1000}).addTo(map);
+  myMark.bindPopup(`<div class="ptitle">📍 현재 내 위치</div><div class="prow">반경 ${R_KM}km 내 안전시설을 표시합니다</div>`);
 }
+function flyHome(){if(myLat)map.flyTo([myLat,myLng],15,{duration:1});}
 
-function moveToMyLocation(){if(myLat)map.flyTo([myLat,myLng],15,{duration:1.2});}
-
-function reverseGeo(){
+function revGeo(){
   fetch(`https://nominatim.openstreetmap.org/reverse?lat=${myLat}&lon=${myLng}&format=json&accept-language=ko`)
     .then(r=>r.json()).then(d=>{
       const a=d.address;
-      document.getElementById('locText').textContent=a.city_district||a.suburb||a.neighbourhood||a.county||'위치 확인됨';
-    }).catch(()=>{document.getElementById('locText').textContent='위치 확인됨';});
+      document.getElementById('locTxt').textContent=a.city_district||a.suburb||a.neighbourhood||a.county||'위치 확인됨';
+    }).catch(()=>{document.getElementById('locTxt').textContent='위치 확인됨';});
 }
 
+/* ── WMS ── */
 function addWMS(){
-  const cfg=GROUP_CONFIG[selectedGroup];
-  cfg.wmsLayers.forEach(key=>{
+  GROUP[grp].wms.forEach(key=>{
     try{
-      const wl=L.tileLayer.wms(WMS_URLS[key],{
+      const t=L.tileLayer.wms(WMS_API[key],{
         authKey:API_KEY,layers:'SafeMap_WmsLayer',
-        format:'image/png',transparent:true,opacity:0.45,version:'1.1.1'
+        format:'image/png',transparent:true,opacity:0.4,version:'1.1.1'
       });
-      wl.addTo(map);
-      activeWMS[key]=wl;
-    }catch(e){console.warn('WMS 오류',key,e);}
+      t.addTo(map); wmsTiles[key]=t;
+    }catch(e){console.warn('WMS',key,e);}
   });
 }
 
-async function loadAll(){
-  document.getElementById('loadingText').textContent='안전 데이터 불러오는 중...';
-  const cfg=GROUP_CONFIG[selectedGroup];
-  const d=RADIUS_KM/111;
-  const bounds={minX:(myLng-d).toFixed(6),maxX:(myLng+d).toFixed(6),minY:(myLat-d).toFixed(6),maxY:(myLat+d).toFixed(6)};
-  await Promise.allSettled(cfg.xmlLayers.map(k=>loadLayer(k,bounds)));
+/* ── XML 데이터 ── */
+async function fetchAll(){
+  document.getElementById('loadTxt').textContent='안전시설 데이터 불러오는 중...';
+  await Promise.allSettled(GROUP[grp].xml.map(k=>fetchLayer(k)));
   document.getElementById('loading').classList.add('hide');
   updateStats();
 }
 
-async function loadLayer(key,bounds){
-  const url=`${API_XML[key]}?authKey=${API_KEY}&pageNo=1&numOfRows=500&minX=${bounds.minX}&maxX=${bounds.maxX}&minY=${bounds.minY}&maxY=${bounds.maxY}`;
+async function fetchLayer(key){
+  const url=XML_API[key]+'?serviceKey='+API_KEY+'&pageNo=1&numOfRows=1000&returnType=XML';
   try{
-    const r=await fetch(url);
-    const txt=await r.text();
+    const ctrl=new AbortController();
+    setTimeout(()=>ctrl.abort(),8000);
+    const res=await fetch(url,{signal:ctrl.signal});
+    const txt=await res.text();
     const xml=new DOMParser().parseFromString(txt,'text/xml');
-    const items=xml.querySelectorAll('item');
-    const grp=L.layerGroup();
-    let cnt=0;
-    items.forEach(item=>{
-      const lat=parseFloat(gx(item,'lat')||gx(item,'wgsY')||gx(item,'y')||0);
-      const lng=parseFloat(gx(item,'lon')||gx(item,'wgsX')||gx(item,'x')||0);
+    const errCode=xv(xml.documentElement,'resultCode');
+    if(errCode&&errCode!=='00'&&errCode!=='0000')throw new Error('API err:'+errCode);
+    const items=[...xml.querySelectorAll('item')];
+    if(items.length===0)throw new Error('no items');
+    const lg=L.layerGroup(); let cnt=0;
+    items.forEach(it=>{
+      let lat,lng;
+      if(key==='bell'){
+        lat=parseFloat(xv(it,'lat')||0);
+        lng=parseFloat(xv(it,'lon')||0);
+      }else{
+        lng=parseFloat(xv(it,'x')||xv(it,'tmp_x')||0);
+        lat=parseFloat(xv(it,'y')||xv(it,'tmp_y')||0);
+      }
       if(!lat||!lng||isNaN(lat)||isNaN(lng))return;
-      if(!inRadius(lat,lng))return;
-      makeMarker(key,lat,lng,item).addTo(grp);cnt++;
+      if(!near(lat,lng))return;
+      mkMarker(key,lat,lng,it).addTo(lg); cnt++;
     });
-    grp.addTo(map);activeLayers[key]=grp;markerCounts[key]=cnt;
-    if(!chipsState[key])map.removeLayer(grp);
+    lg.addTo(map); layers[key]=lg; counts[key]=cnt;
+    if(!chipOn[key])map.removeLayer(lg);
   }catch(e){
-    console.warn(key,'API 실패, 목업 사용',e);
+    console.warn('['+key+'] API fail->mock',e.message);
     mockLayer(key);
   }
 }
 
-function gx(item,tag){const el=item.querySelector(tag);return el?el.textContent.trim():'';}
+function xv(it,tag){const e=it.querySelector(tag);return e?e.textContent.trim():'';}
 
-function inRadius(lat,lng){
-  const R=6371,dL=(myLat-lat)*Math.PI/180,dG=(myLng-lng)*Math.PI/180;
-  const a=Math.sin(dL/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(myLat*Math.PI/180)*Math.sin(dG/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))<=RADIUS_KM;
+function near(lat,lng){
+  const R=6371,dl=(myLat-lat)*Math.PI/180,dg=(myLng-lng)*Math.PI/180;
+  const a=Math.sin(dl/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(myLat*Math.PI/180)*Math.sin(dg/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))<=R_KM;
 }
 
-function makeMarker(key,lat,lng,item){
-  const m=LAYER_META[key];
+/* ── 마커 ── */
+function mkMarker(key,lat,lng,it){
+  const m=LAYER[key];
   let name='',addr='',extra='';
   if(key==='bell'){
-    name=gx(item,'fcltNm')||gx(item,'name')||'안전비상벨';
-    addr=gx(item,'rdnmadr')||gx(item,'address')||'';
-    const p=gx(item,'ynPoliceConn')||gx(item,'policeConn')||'';
-    extra=p==='Y'?'<span style="color:#00e676">✓ 경찰 연계</span>':'<span style="color:#ff4757">✗ 경찰 미연계</span>';
+    // 안전비상벨 필드: ins_detail(설치위치), rn_adres(도로명), flag_pol_l(경찰연계)
+    name=xv(it,'ins_detail')||xv(it,'rn_adres')||'안전비상벨';
+    addr=xv(it,'rn_adres')||xv(it,'adres')||'';
+    const pc=xv(it,'flag_pol_l')||'';
+    extra=pc==='Y'?'<span style="color:#059669">✓ 경찰 연계</span>':'<span style="color:#dc2626">✗ 경찰 미연계</span>';
+    const tel=xv(it,'mng_tel')||'';
+    if(tel)extra+=`<br><span style="color:#64748b">📞 ${tel}</span>`;
   }else if(key==='police'){
-    name=gx(item,'orgNm')||gx(item,'name')||'치안시설';
-    addr=gx(item,'rdnmadr')||gx(item,'address')||'';
-    const t=gx(item,'orgDiv')||'';
-    extra=t?`<span style="color:#b388ff">${t}</span>`:'';
+    // 치안시설 필드: fclty_nm(시설명), rn_adres(도로명), fclty_ty(유형)
+    name=xv(it,'fclty_nm')||'치안시설';
+    addr=xv(it,'rn_adres')||xv(it,'adres')||'';
+    const tp=xv(it,'fclty_ty')||'';
+    const tel=xv(it,'telno')||'';
+    extra=(tp?`<span style="color:#7c3aed">${tp}</span> `:'')+
+          (tel?`<span style="color:#64748b">📞 ${tel}</span>`:'');
   }else if(key==='child_house'){
-    name=gx(item,'fcltNm')||gx(item,'name')||'아동안전지킴이집';
-    addr=gx(item,'rdnmadr')||gx(item,'address')||'';
-    extra='<span style="color:#00e676">🏠 아동 보호</span>';
+    // 아동안전지킴이집 필드: fclty_nm(시설명), rn_adres(도로명), telno(전화번호)
+    name=xv(it,'fclty_nm')||'아동안전지킴이집';
+    addr=xv(it,'rn_adres')||xv(it,'adres')||'';
+    const tel=xv(it,'telno')||'';
+    extra='<span style="color:#059669">🏠 아동 보호</span>'+(tel?` <span style="color:#64748b">📞 ${tel}</span>`:'');
   }
   const icon=L.divIcon({
-    html:`<div style="width:34px;height:34px;border-radius:50%;background:${m.color}22;border:2px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,.4);">${m.emoji}</div>`,
-    className:'',iconSize:[34,34],iconAnchor:[17,17]
+    html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);">${m.emoji}</div>`,
+    className:'',iconSize:[36,36],iconAnchor:[18,18]
   });
   return L.marker([lat,lng],{icon}).bindPopup(
-    L.popup({className:'custom-popup',closeButton:false,maxWidth:260}).setContent(`
-      <div class="popup-badge" style="background:${m.color}22;color:${m.color}">${m.emoji} ${m.label}</div>
-      <div class="popup-title">${name}</div>
-      ${addr?`<div class="popup-row">📍 ${addr}</div>`:''}
-      ${extra?`<div class="popup-row">${extra}</div>`:''}
+    L.popup({className:'safepopup',closeButton:true,maxWidth:240}).setContent(`
+      <div class="pbadge" style="background:${m.color}18;color:${m.color}">${m.emoji} ${m.label}</div>
+      <div class="ptitle">${name}</div>
+      ${addr?`<div class="prow">📍 ${addr}</div>`:''}
+      ${extra?`<div class="prow">${extra}</div>`:''}
     `)
   );
 }
 
+/* ── 목업 (API 실패 시) ── */
 function mockLayer(key){
-  const m=LAYER_META[key];
-  const grp=L.layerGroup();
-  const n=key==='bell'?8:key==='police'?3:5;
+  const m=LAYER[key], lg=L.layerGroup();
+  const n={bell:9,police:3,child_house:5}[key]||5;
   let cnt=0;
-  for(let i=0;i<n*3;i++){
-    const lat=myLat+(Math.random()-.5)*0.014;
-    const lng=myLng+(Math.random()-.5)*0.018;
-    if(!inRadius(lat,lng))continue;
+  // 내 위치 주변에 고르게 배치
+  for(let i=0;i<n;i++){
+    const angle=(i/n)*2*Math.PI;
+    const dist=0.003+Math.random()*0.006;
+    const lat=myLat+dist*Math.cos(angle);
+    const lng=myLng+dist*Math.sin(angle);
+    if(!near(lat,lng))continue;
     const icon=L.divIcon({
-      html:`<div style="width:34px;height:34px;border-radius:50%;background:${m.color}22;border:2px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,.4);">${m.emoji}</div>`,
-      className:'',iconSize:[34,34],iconAnchor:[17,17]
+      html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);">${m.emoji}</div>`,
+      className:'',iconSize:[36,36],iconAnchor:[18,18]
     });
     L.marker([lat,lng],{icon}).bindPopup(
-      L.popup({className:'custom-popup',closeButton:false}).setContent(`
-        <div class="popup-badge" style="background:${m.color}22;color:${m.color}">${m.emoji} ${m.label}</div>
-        <div class="popup-title">${m.label} (목업 데이터)</div>
-        <div class="popup-row" style="color:#ff9800">⚠ API 연결 후 실제 데이터 표시</div>
+      L.popup({className:'safepopup',closeButton:true}).setContent(`
+        <div class="pbadge" style="background:${m.color}18;color:${m.color}">${m.emoji} ${m.label}</div>
+        <div class="ptitle">${m.label} (샘플)</div>
+        <div class="prow" style="color:#f59e0b">⚠ API 승인 후 실제 데이터 표시</div>
       `)
-    ).addTo(grp);
-    if(++cnt>=n)break;
+    ).addTo(lg);
+    cnt++;
   }
-  grp.addTo(map);activeLayers[key]=grp;markerCounts[key]=cnt;
-  if(!chipsState[key])map.removeLayer(grp);
+  lg.addTo(map); layers[key]=lg; counts[key]=cnt;
+  if(!chipOn[key])map.removeLayer(lg);
 }
 
+/* ── 통계 ── */
 function updateStats(){
-  const cfg=GROUP_CONFIG[selectedGroup];
-  document.getElementById('statBell').textContent=markerCounts['bell']||0;
-  document.getElementById('statPolice').textContent=markerCounts['police']||0;
-  document.getElementById('statSpecial').textContent=cfg.specialKey?(markerCounts[cfg.specialKey]||0):'-';
+  document.getElementById('s1').textContent=counts['bell']||0;
+  document.getElementById('s2').textContent=counts['police']||0;
+  document.getElementById('s3').textContent=GROUP[grp].special?(counts[GROUP[grp].special]||0):'-';
 }
 
 window.onload=()=>{
-  if(typeof L === 'undefined'){
-    document.getElementById('loadingText').textContent='지도 라이브러리 로드 실패. 인터넷 연결을 확인해주세요.';
+  if(typeof L==='undefined'){
+    document.getElementById('loadTxt').textContent='지도 라이브러리 로드 실패. 인터넷 연결 확인 후 새로고침하세요.';
     return;
   }
   document.getElementById('loading').classList.add('hide');
-  setTimeout(()=>{document.getElementById('loading').style.display='none';},500);
 };
 </script>
 </body>
