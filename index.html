@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.0</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.1</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -160,9 +160,7 @@ const XML_API = {
   child_house:'https://safemap.go.kr/openapi2/IF_0055',
   cpted:      'https://safemap.go.kr/openapi2/IF_0023',
 };
-// CORS 프록시 (safemap.go.kr XML API는 브라우저 직접 호출 CORS 차단)
-const PROXY = 'https://api.allorigins.win/raw?url=';
-function proxied(url){ return PROXY + encodeURIComponent(url); }
+
 // WMS API
 const WMS_API = {
   women:    'https://safemap.go.kr/openapi2/IF_0080_WMS',
@@ -184,7 +182,7 @@ const WMS_LAYER = {
   cctv:     {label:'CCTV',          color:'#2563eb'},
 };
 const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cpted'], wms:['children','cctv'], special:'child_house'},
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house'], wms:['children','cctv'], special:'child_house'},
   youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police'],              wms:['women','cctv'],    special:null},
   elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police'],              wms:['elder_c','cctv'],  special:null},
 };
@@ -349,39 +347,40 @@ async function fetchAll(){
 }
 
 async function fetchLayer(key){
-  const rawUrl=XML_API[key]+'?serviceKey='+API_KEY+'&pageNo=1&numOfRows=1000&returnType=JSON';
-  const url=proxied(rawUrl);
+  const cfg=LAYER_API[key];
+  if(!cfg){console.warn('['+key+'] LAYER_API 없음');return;}
+  const bounds=map.getBounds();
+  // area4326: top,bottom,left,right
+  const area4326=[
+    bounds.getNorth(),bounds.getSouth(),
+    bounds.getWest(),bounds.getEast()
+  ].join(',');
+  // area3857: top,bottom,left,right (EPSG:3857 미터 좌표)
+  const nw=L.CRS.EPSG3857.project(bounds.getNorthWest());
+  const se=L.CRS.EPSG3857.project(bounds.getSouthEast());
+  const area3857=[nw.y,se.y,nw.x,se.x].join(',');
+
+  const params=new URLSearchParams({
+    layerName:cfg.layer, style:cfg.style,
+    area4326, area3857,
+    currentPage:'1', perPage:'500'
+  });
   try{
     const ctrl=new AbortController();
-    setTimeout(()=>ctrl.abort(),15000);
-    const res=await fetch(url,{signal:ctrl.signal});
-    const txt=await res.text();
-    // corsproxy.io는 JSON으로 래핑해서 반환
-    let data;
-    try{ data=JSON.parse(txt); }catch(e){ throw new Error('JSON 파싱 실패'); }
-    // allorigins 방식 처리
-    if(data.contents) data=JSON.parse(data.contents);
-    const result=data?.response?.body||data?.body||data;
-    const errCode=result?.resultCode||result?.header?.resultCode||'00';
-    if(errCode!=='00'&&errCode!=='0000'&&errCode!==0)throw new Error('API err:'+errCode);
-    const items=result?.items?.item||result?.item||[];
-    const itemArr=Array.isArray(items)?items:[items];
-    if(itemArr.length===0||!itemArr[0])throw new Error('no items');
-    // 실데이터 성공 → mock 제거 후 실데이터로 교체
+    setTimeout(()=>ctrl.abort(),10000);
+    const res=await fetch(MARKER_API,{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:params, signal:ctrl.signal
+    });
+    const data=await res.json();
+    const items=data.resultList||[];
+    if(items.length===0)throw new Error('no items');
     if(layers[key])map.removeLayer(layers[key]);
     const lg=L.layerGroup(); let cnt=0;
-    itemArr.forEach(it=>{
-      let lat,lng;
-      if(key==='bell'){
-        lat=parseFloat(xv(it,'lat')||0);
-        lng=parseFloat(xv(it,'lon')||0);
-      }else if(key==='cpted'){
-        // CPTED는 별도 좌표 필드 없음 → 건너뜀
-        return;
-      }else{
-        lng=parseFloat(xv(it,'x')||xv(it,'tmp_x')||0);
-        lat=parseFloat(xv(it,'y')||xv(it,'tmp_y')||0);
-      }
+    items.forEach(it=>{
+      const lat=parseFloat(it.lat||0);
+      const lng=parseFloat(it.lon||0);
       if(!lat||!lng||isNaN(lat)||isNaN(lng))return;
       if(!near(lat,lng))return;
       mkMarker(key,lat,lng,it).addTo(lg); cnt++;
@@ -389,9 +388,9 @@ async function fetchLayer(key){
     lg.addTo(map); layers[key]=lg; counts[key]=cnt;
     if(!chipOn[key])map.removeLayer(lg);
     updateStats();
-    console.log('['+key+'] 실데이터 로드 완료: '+cnt+'개');
+    console.log('['+key+'] 로드완료:'+cnt+'개');
   }catch(e){
-    console.warn('['+key+'] API 실패:', e.message);
+    console.warn('['+key+'] 실패:',e.message);
   }
 }
 
