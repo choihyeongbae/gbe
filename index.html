@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.0.5</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.0.7</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -355,6 +355,8 @@ async function fetchLayer(key){
     if(errCode&&errCode!=='00'&&errCode!=='0000')throw new Error('API err:'+errCode);
     const items=[...xml.querySelectorAll('item')];
     if(items.length===0)throw new Error('no items');
+    // 실데이터 성공 → mock 제거 후 실데이터로 교체
+    if(layers[key])map.removeLayer(layers[key]);
     const lg=L.layerGroup(); let cnt=0;
     items.forEach(it=>{
       let lat,lng;
@@ -371,9 +373,10 @@ async function fetchLayer(key){
     });
     lg.addTo(map); layers[key]=lg; counts[key]=cnt;
     if(!chipOn[key])map.removeLayer(lg);
+    updateStats();
+    console.log('['+key+'] 실데이터 로드 완료: '+cnt+'개');
   }catch(e){
-    console.warn('['+key+'] API fail->mock',e.message);
-    mockLayer(key);
+    console.warn('['+key+'] API 실패:', e.message);
   }
 }
 
@@ -424,32 +427,6 @@ function mkMarker(key,lat,lng,it){
       ${extra?`<div class="prow">${extra}</div>`:''}
     `)
   );
-}
-
-/* ── 목업 (API 실패 시) ── */
-function mockLayer(key){
-  const m=LAYER[key], lg=L.layerGroup();
-  const n={bell:9,police:4,child_house:5}[key]||5;
-  // near() 체크 없이 내 위치 주변 원형 배치
-  for(let i=0;i<n;i++){
-    const angle=(i/n)*2*Math.PI;
-    const dist=0.002+i*0.001; // 200m~1km 이내
-    const lat=myLat+dist*Math.cos(angle);
-    const lng=myLng+dist*Math.sin(angle)*1.3; // 경도 스케일 보정
-    const icon=L.divIcon({
-      html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px dashed ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);opacity:0.8;">${m.emoji}</div>`,
-      className:'',iconSize:[36,36],iconAnchor:[18,18]
-    });
-    L.marker([lat,lng],{icon}).bindPopup(
-      L.popup({className:'safepopup',closeButton:true}).setContent(`
-        <div class="pbadge" style="background:#fef3c718;color:#d97706">⚠ 샘플 데이터</div>
-        <div class="ptitle">${m.label} ${i+1}호</div>
-        <div class="prow" style="color:#f59e0b">API 승인 후 실제 위치로 교체됩니다</div>
-      `)
-    ).addTo(lg);
-  }
-  lg.addTo(map); layers[key]=lg; counts[key]=n;
-  if(!chipOn[key])map.removeLayer(lg);
 }
 
 /* ── 통계 ── */
