@@ -306,19 +306,11 @@ const SafemapWMS4326 = L.TileLayer.extend({
   }
 });
 
-// EPSG:3857용 (CCTV) - Leaflet 내장 CRS 변환 사용
+// CCTV: bbox는 4326 좌표, srs=EPSG:3857, layers 파라미터 포함
 const SafemapWMS3857 = L.TileLayer.extend({
   getTileUrl: function(coords){
-    const map = this._map;
-    const tileSize = this.getTileSize();
-    const nwPoint = coords.scaleBy(tileSize);
-    const sePoint = nwPoint.add([tileSize.x, tileSize.y]);
-    const nwLatLng = map.unproject(nwPoint, coords.z);
-    const seLatLng = map.unproject(sePoint, coords.z);
-    // Leaflet 내장 EPSG:3857 변환
-    const nw3857 = L.CRS.EPSG3857.project(nwLatLng);
-    const se3857 = L.CRS.EPSG3857.project(seLatLng);
-    const bbox = [nw3857.x, se3857.y, se3857.x, nw3857.y].join(',');
+    const b = this._tileCoordsToBounds(coords);
+    const bbox = [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');
     return this._url
       + '?serviceKey=' + API_KEY
       + '&layers=A2SM_CCTV_INFO'
