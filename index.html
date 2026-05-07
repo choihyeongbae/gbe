@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.5</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.1.6</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -351,6 +351,7 @@ async function fetchAll(){
     if(layers[k]){map.removeLayer(layers[k]);layers[k]=null;}
   });
   await Promise.allSettled(GROUP[grp].xml.map(k=>fetchLayer(k)));
+  document.getElementById('loading').classList.add('hide');
   updateStats();
 }
 
