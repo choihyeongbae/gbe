@@ -174,16 +174,17 @@ const WMS_LAYER = {
   women:    {label:'여성밤길안전',   color:'#db2777'},
   elder_c:  {label:'노인범죄주의',   color:'#ea580c'},
   children: {label:'어린이범죄주의', color:'#ca8a04'},
+  cctv:     {label:'CCTV',          color:'#2563eb'},
 };
 const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house'], wms:['children'], special:'child_house'},
-  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police'],              wms:['women'],    special:null},
-  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police'],              wms:['elder_c'],  special:null},
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house'], wms:['children','cctv'], special:'child_house'},
+  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police'],              wms:['women','cctv'],    special:null},
+  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police'],              wms:['elder_c','cctv'],  special:null},
 };
 
 /* ── 상태 ── */
 let map, myMark, myLat, myLng, grp=null;
-let layers={}, wmsTiles={}, chipOn={}, counts={bell:0,police:0,child_house:0};
+let layers={}, wmsTiles={}, chipOn={}, counts={};
 
 /* ── 인트로 ── */
 function pick(el){
@@ -204,7 +205,7 @@ function goBack(){
   document.getElementById('intro').classList.remove('out');
   document.getElementById('map-screen').classList.remove('show');
   if(map){map.remove();map=null;}
-  layers={};wmsTiles={};counts={bell:0,police:0,child_house:0};
+  layers={};wmsTiles={};chipOn={};counts={};
 }
 
 /* ── 지도 ── */
