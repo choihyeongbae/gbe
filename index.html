@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.0.8</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.0.9</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -349,22 +349,28 @@ async function fetchAll(){
 }
 
 async function fetchLayer(key){
-  const rawUrl=XML_API[key]+'?serviceKey='+API_KEY+'&pageNo=1&numOfRows=1000&returnType=XML';
+  const rawUrl=XML_API[key]+'?serviceKey='+API_KEY+'&pageNo=1&numOfRows=1000&returnType=JSON';
   const url=proxied(rawUrl);
   try{
     const ctrl=new AbortController();
     setTimeout(()=>ctrl.abort(),8000);
     const res=await fetch(url,{signal:ctrl.signal});
     const txt=await res.text();
-    const xml=new DOMParser().parseFromString(txt,'text/xml');
-    const errCode=xv(xml.documentElement,'resultCode');
-    if(errCode&&errCode!=='00'&&errCode!=='0000')throw new Error('API err:'+errCode);
-    const items=[...xml.querySelectorAll('item')];
-    if(items.length===0)throw new Error('no items');
+    // corsproxy.io는 JSON으로 래핑해서 반환
+    let data;
+    try{ data=JSON.parse(txt); }catch(e){ throw new Error('JSON 파싱 실패'); }
+    // allorigins 방식 처리
+    if(data.contents) data=JSON.parse(data.contents);
+    const result=data?.response?.body||data?.body||data;
+    const errCode=result?.resultCode||result?.header?.resultCode||'00';
+    if(errCode!=='00'&&errCode!=='0000'&&errCode!==0)throw new Error('API err:'+errCode);
+    const items=result?.items?.item||result?.item||[];
+    const itemArr=Array.isArray(items)?items:[items];
+    if(itemArr.length===0||!itemArr[0])throw new Error('no items');
     // 실데이터 성공 → mock 제거 후 실데이터로 교체
     if(layers[key])map.removeLayer(layers[key]);
     const lg=L.layerGroup(); let cnt=0;
-    items.forEach(it=>{
+    itemArr.forEach(it=>{
       let lat,lng;
       if(key==='bell'){
         lat=parseFloat(xv(it,'lat')||0);
@@ -389,7 +395,7 @@ async function fetchLayer(key){
   }
 }
 
-function xv(it,tag){const e=it.querySelector(tag);return e?e.textContent.trim():'';}
+function xv(it,tag){return it&&it[tag]!=null?String(it[tag]).trim():'';}
 
 function near(lat,lng){
   const R=6371,dl=(myLat-lat)*Math.PI/180,dg=(myLng-lng)*Math.PI/180;
