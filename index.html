@@ -102,7 +102,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.1</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.2</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -224,10 +224,7 @@ function initMap(){
   // Leaflet이 터치 이벤트 가로채지 않도록 UI 패널 보호
   ['.layer-panel','.topbar'].forEach(sel=>{
     const el=document.querySelector(sel);
-    if(el){
-      L.DomEvent.disableClickPropagation(el);
-      L.DomEvent.disableScrollPropagation(el);
-    }
+    if(el) L.DomEvent.disableClickPropagation(el);
   });
 }
 
@@ -240,18 +237,16 @@ function buildChips(){
     el.className='chip on'; el.id='c_'+key;
     el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>${m.emoji} ${m.label}`;
     el.addEventListener('click',()=>toggleXML(key));
-    el.addEventListener('touchend',(e)=>{e.preventDefault();toggleXML(key);});
     c.appendChild(el);
   });
   g.wms.forEach(key=>{
     const m=WMS_LAYER[key];
-    const defaultOn=key!=='cpted';
+    const defaultOn=key!=='cpted'&&key!=='cctv';
     chipOn['w_'+key]=defaultOn;
     const el=document.createElement('div');
     el.className=defaultOn?'chip on':'chip'; el.id='c_w_'+key;
     el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>🗺 ${m.label}`;
     el.addEventListener('click',()=>toggleWMS(key));
-    el.addEventListener('touchend',(e)=>{e.preventDefault();toggleWMS(key);});
     c.appendChild(el);
   });
   const t=document.getElementById('gTag'), g2=GROUP[grp];
