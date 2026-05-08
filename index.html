@@ -67,17 +67,17 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
   transform:translateY(calc(100% - 56px));
   transition:transform .3s cubic-bezier(.4,0,.2,1);
   display:none;
-  touch-action:none;
 }
 #sheet.show{display:block;}
 #sheet.open{transform:translateY(0);}
 .sheet-handle-wrap{
   display:flex;flex-direction:column;align-items:center;
+  touch-action:none;
   padding:10px 0 8px;cursor:grab;user-select:none;
 }
 .sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--gray2);margin-bottom:6px;}
 .sheet-label{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.08em;}
-.sheet-body{padding:0 14px 28px;}
+.sheet-body{padding:0 14px 28px;touch-action:auto;}
 .chips{display:flex;flex-direction:column;gap:0;}
 .chip-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--gray2);}
 .chip-row:last-child{border-bottom:none;}
@@ -131,7 +131,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.5</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.6</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
