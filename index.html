@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.4</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.6</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -302,6 +302,47 @@ function onLocated(){
   map.on('moveend',()=>{
     clearTimeout(moveTimer);
     moveTimer=setTimeout(()=>fetchAll(true),500);
+  });
+
+  // CPTED 클릭 시 getMapLayerListPost.json 으로 정보 조회
+  map.on('click', async function(e){
+    if(!chipOn['w_cpted']||!wmsTiles['cpted']) return;
+    const b=map.getBounds();
+    const nw=L.CRS.EPSG3857.project(b.getNorthWest());
+    const se=L.CRS.EPSG3857.project(b.getSouthEast());
+    const clickPt=L.CRS.EPSG3857.project(e.latlng);
+    const params=new URLSearchParams({
+      top:nw.y, bottom:se.y, left:nw.x, right:se.x,
+      layer:'A2SM_CPTED_G', style:'A2SM_CPTED_G',
+      currentPage:'1', perPage:'50'
+    });
+    try{
+      const res=await fetch('https://www.safemap.go.kr/com/cmm/getMapLayerListPost.json',{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:params
+      });
+      const data=await res.json();
+      const items=(data.layerList||[]).filter(it=>it.rn>0&&it.x&&it.y);
+      if(items.length===0) return;
+      // 클릭 위치에서 가장 가까운 항목 찾기
+      let closest=null, minDist=Infinity;
+      items.forEach(it=>{
+        const dx=it.x-clickPt.x, dy=it.y-clickPt.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<minDist){minDist=dist;closest=it;}
+      });
+      if(!closest) return;
+      const addr=closest.adres||'';
+      L.popup({className:'safepopup',closeButton:true,maxWidth:260})
+        .setLatLng(e.latlng)
+        .setContent(`
+          <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
+          <div class="ptitle">CPTED 구역</div>
+          ${addr?`<div class="prow">📍 ${addr}</div>`:''}
+          <div class="prow" style="color:#b45309">총 ${closest.totcnt}개 구역 운영 중</div>
+        `).openOn(map);
+    }catch(err){console.warn('CPTED 정보 조회 실패',err);}
   });
 }
 
