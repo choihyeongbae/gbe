@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.1</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.2</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -168,6 +168,7 @@ const WMS_API = {
   elder_c:  'https://safemap.go.kr/openapi2/IF_0082_WMS',
   children: 'https://safemap.go.kr/openapi2/IF_0081_WMS',
   cctv:     'https://safemap.go.kr/openapi2/IF_0131_WMS',
+  cpted:    'https://safemap.go.kr/openapi2/IF_0023',
 };
 
 const LAYER = {
@@ -182,11 +183,12 @@ const WMS_LAYER = {
   elder_c:  {label:'노인범죄주의',   color:'#ea580c'},
   children: {label:'어린이범죄주의', color:'#ca8a04'},
   cctv:     {label:'CCTV',          color:'#2563eb'},
+  cpted:    {label:'범죄예방환경설계', color:'#b45309'},
 };
 const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children'], special:'child_house'},
-  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','child_house','cctv'], wms:['women'], special:null},
-  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police','cctv'],        wms:['elder_c'],         special:null},
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children','cpted'], special:'child_house'},
+  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','child_house','cctv'], wms:['women','cpted'], special:null},
+  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police','cctv'],        wms:['elder_c','cpted'],         special:null},
 };
 
 /* ── 상태 ── */
@@ -238,9 +240,11 @@ function buildChips(){
     c.appendChild(el);
   });
   g.wms.forEach(key=>{
-    const m=WMS_LAYER[key]; chipOn['w_'+key]=true;
+    const m=WMS_LAYER[key];
+    const defaultOn=key!=='cpted';
+    chipOn['w_'+key]=defaultOn;
     const el=document.createElement('div');
-    el.className='chip on'; el.id='c_w_'+key;
+    el.className=defaultOn?'chip on':'chip'; el.id='c_w_'+key;
     el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>🗺 ${m.label}`;
     el.onclick=()=>toggleWMS(key);
     c.appendChild(el);
@@ -358,7 +362,8 @@ function addWMS(){
       let t;
       // 모든 WMS 동일 방식 (CCTV 포함): srs=EPSG:4326, layers 없음
       t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
-      t.addTo(map); wmsTiles[key]=t;
+      if(chipOn['w_'+key]) t.addTo(map);
+      wmsTiles[key]=t;
     }catch(e){console.warn('WMS 오류',key,e);}
   });
 }
