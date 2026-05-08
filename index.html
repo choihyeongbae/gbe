@@ -131,7 +131,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.4</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.5</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -366,7 +366,7 @@ function toggleXML(key){
 function toggleWMS(key){
   const cb=document.getElementById('c_w_'+key);
   chipOn['w_'+key]=cb.checked;
-  if(wmsTiles[key]) chipOn['w_'+key]?map.addLayer(wmsTiles[key]):map.removeLayer(wmsTiles[key]);
+  if(wmsTiles[key]) wmsTiles[key].setOpacity(chipOn['w_'+key]?0.5:0);
 }
 
 /* ── GPS ── */
@@ -521,7 +521,8 @@ function addWMS(){
         // 나머지: safemap bbox 방식
         t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
       }
-      if(chipOn['w_'+key]) t.addTo(map);
+      t.addTo(map);
+      if(!chipOn['w_'+key]) t.setOpacity(0);
       wmsTiles[key]=t;
     }catch(e){console.warn('WMS 오류',key,e);}
   });
