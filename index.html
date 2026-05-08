@@ -50,7 +50,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 
 /* TOPBAR */
 .topbar{position:absolute;top:0;left:0;right:0;z-index:500;padding:12px 14px 0;display:flex;gap:8px;align-items:center;pointer-events:none;}
-.icon-btn{pointer-events:auto;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;}
+.icon-btn{pointer-events:auto;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;cursor:pointer;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;}
 .icon-btn:hover{background:#dbeafe;}
 .topbar-info{pointer-events:auto;flex:1;background:var(--card);border:1px solid var(--gray2);border-radius:13px;padding:8px 13px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;}
 .group-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
@@ -63,12 +63,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .layer-panel{position:absolute;bottom:0;left:0;right:0;z-index:500;padding:0 14px 18px;pointer-events:none;}
 .chips{pointer-events:auto;display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:9px;scrollbar-width:none;}
 .chips::-webkit-scrollbar{display:none;}
-.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;transition:all .2s;white-space:nowrap;opacity:.55;}
+.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .2s;white-space:nowrap;opacity:.55;}
 .chip.on{opacity:1;color:var(--navy);}
 .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .stats-bar{pointer-events:auto;background:var(--card);border:1px solid var(--gray2);border-radius:16px;padding:10px 12px;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
 .stats-bar::-webkit-scrollbar{display:none;}
-.stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:12px;padding:7px 12px;}
+.stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:12px;padding:7px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .stat-emoji{font-size:15px;}
 .stat-info{display:flex;flex-direction:column;gap:1px;}
 .stat-num{font-size:15px;font-weight:900;line-height:1;}
@@ -102,7 +102,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.7</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.8</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -249,6 +249,8 @@ function buildChips(){
   t.className='group-tag '+grp;
 }
 
+// iOS div onclick 보장
+document.addEventListener('touchstart',function(){},{passive:true});
 function toggleXML(key){
   chipOn[key]=!chipOn[key];
   document.getElementById('c_'+key).classList.toggle('on',chipOn[key]);
