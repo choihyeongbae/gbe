@@ -105,7 +105,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.6</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.7</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -218,7 +218,7 @@ function goBack(){
 
 /* ── 지도 ── */
 function initMap(){
-  map = L.map('map',{zoomControl:false,attributionControl:false}).setView([36.5,127.8],7);
+  map = L.map('map',{zoomControl:false,attributionControl:false,tap:false,tapTolerance:15}).setView([36.5,127.8],7);
   // 밝은 지도 타일
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     {maxZoom:19,subdomains:'abcd'}).addTo(map);
