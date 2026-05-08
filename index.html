@@ -66,11 +66,14 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;transition:all .2s;white-space:nowrap;opacity:.55;}
 .chip.on{opacity:1;color:var(--navy);}
 .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.stats-bar{pointer-events:auto;background:var(--card);border:1px solid var(--gray2);border-radius:16px;padding:12px 16px;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:space-between;}
-.stat-item{display:flex;flex-direction:column;align-items:center;gap:1px;}
-.stat-num{font-size:20px;font-weight:900;}
-.stat-lbl{font-size:10px;color:var(--gray);font-weight:500;}
-.stat-div{width:1px;height:30px;background:var(--gray2);}
+.stats-bar{pointer-events:auto;background:var(--card);border:1px solid var(--gray2);border-radius:16px;padding:10px 12px;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.stats-bar::-webkit-scrollbar{display:none;}
+.stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:12px;padding:7px 12px;}
+.stat-emoji{font-size:15px;}
+.stat-info{display:flex;flex-direction:column;gap:1px;}
+.stat-num{font-size:15px;font-weight:900;line-height:1;}
+.stat-lbl{font-size:10px;color:var(--gray);font-weight:500;white-space:nowrap;}
+.stat-div{display:none;}
 
 /* POPUP */
 .safepopup .leaflet-popup-content-wrapper{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);color:var(--navy);}
@@ -99,7 +102,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.6</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.7</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -136,15 +139,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
   </div>
   <div class="layer-panel">
     <div class="chips" id="chips"></div>
-    <div class="stats-bar">
-      <div class="stat-item"><div class="stat-num" id="s1" style="color:#0891b2">-</div><div class="stat-lbl">비상벨</div></div>
-      <div class="stat-div"></div>
-      <div class="stat-item"><div class="stat-num" id="s2" style="color:#7c3aed">-</div><div class="stat-lbl">치안시설</div></div>
-      <div class="stat-div"></div>
-      <div class="stat-item"><div class="stat-num" id="s3" style="color:#059669">-</div><div class="stat-lbl">특화시설</div></div>
-      <div class="stat-div"></div>
-      <div class="stat-item"><div class="stat-num" style="color:#ea580c">1km</div><div class="stat-lbl">반경</div></div>
-    </div>
+    <div class="stats-bar" id="statsBar"></div>
   </div>
 </div>
 
@@ -551,9 +546,24 @@ function mkMarker(key,lat,lng,it){
 
 /* ── 통계 ── */
 function updateStats(){
-  document.getElementById('s1').textContent=counts['bell']||0;
-  document.getElementById('s2').textContent=counts['police']||0;
-  document.getElementById('s3').textContent=GROUP[grp].special?(counts[GROUP[grp].special]||0):'-';
+  const bar=document.getElementById('statsBar');
+  if(!bar) return;
+  const g=GROUP[grp];
+  const items=[];
+  // XML 레이어 카운트
+  g.xml.forEach(key=>{
+    const m=LAYER[key];
+    if(!m) return;
+    const cnt=counts[key]||0;
+    items.push(`<div class="stat-item">
+      <span class="stat-emoji">${m.emoji}</span>
+      <div class="stat-info">
+        <span class="stat-num" style="color:${m.color}">${cnt}</span>
+        <span class="stat-lbl">${m.label}</span>
+      </div>
+    </div>`);
+  });
+  bar.innerHTML=items.join('');
 }
 
 window.onload=()=>{
