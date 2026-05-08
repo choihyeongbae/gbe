@@ -43,15 +43,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .start-btn.on{opacity:1;pointer-events:auto;}
 .start-btn.on:hover{background:#1d4ed8;transform:translateY(-1px);}
 
-/* MAP SCREEN */
+/* MAP SCREEN - flex column, 지도 위 + 패널 아래 완전 분리 */
 #map-screen{position:fixed;inset:0;display:none;flex-direction:column;}
 #map-screen.show{display:flex;}
-#map{flex:1;width:100%;}
+#map-screen.show .layer-panel{display:block;}
+#map{flex:1;width:100%;min-height:0;}
 
-/* TOPBAR */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:500;padding:12px 14px 0;display:none;gap:8px;align-items:center;}
-.icon-btn{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;cursor:pointer;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;}
-.icon-btn:hover{background:#dbeafe;}
+/* TOPBAR - 지도 위 absolute (지도 안에 있어도 됨) */
+.topbar{position:absolute;top:0;left:0;right:0;z-index:100;padding:12px 14px 0;display:flex;gap:8px;align-items:center;}
+.icon-btn{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;touch-action:manipulation;}
+.icon-btn:active{background:#dbeafe;}
 .topbar-info{flex:1;background:var(--card);border:1px solid var(--gray2);border-radius:13px;padding:8px 13px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;}
 .group-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
 .group-tag.child{background:#d1fae5;color:#065f46;}
@@ -59,20 +60,27 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .group-tag.elder{background:#ffedd5;color:#9a3412;}
 .topbar-loc{font-size:12px;color:var(--gray);}
 
-/* LAYER PANEL */
-.layer-panel{position:fixed;bottom:0;left:0;right:0;z-index:500;padding:0 14px 18px;touch-action:auto;display:none;}
-.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:9px;scrollbar-width:none;touch-action:pan-x;-webkit-overflow-scrolling:touch;}
+/* LAYER PANEL - 지도 아래 완전 독립 영역 */
+.layer-panel{
+  width:100%;background:var(--white);
+  border-top:1px solid var(--gray2);
+  padding:12px 14px 20px;
+  flex-shrink:0;
+  display:none;
+}
+.panel-title{font-size:10px;font-weight:700;color:var(--gray);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .chips::-webkit-scrollbar{display:none;}
-.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:all .2s;white-space:nowrap;opacity:.55;font-family:'Noto Sans KR',sans-serif;-webkit-appearance:none;appearance:none;outline:none;}
-.chip.on{opacity:1;color:var(--navy);}
+.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:8px 14px;border-radius:100px;background:var(--bg);border:1.5px solid var(--gray2);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:all .15s;white-space:nowrap;opacity:.5;font-family:'Noto Sans KR',sans-serif;-webkit-appearance:none;appearance:none;outline:none;border:none;}
+.chip.on{opacity:1;color:var(--navy);background:var(--white);border:1.5px solid var(--gray2);}
 .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.stats-bar{background:var(--card);border:1px solid var(--gray2);border-radius:16px;padding:10px 12px;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.stats-bar{display:flex;gap:8px;overflow-x:auto;padding-top:8px;border-top:1px solid var(--gray2);margin-top:4px;scrollbar-width:none;}
 .stats-bar::-webkit-scrollbar{display:none;}
-.stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:12px;padding:7px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.stat-emoji{font-size:15px;}
-.stat-info{display:flex;flex-direction:column;gap:1px;}
-.stat-num{font-size:15px;font-weight:900;line-height:1;}
-.stat-lbl{font-size:10px;color:var(--gray);font-weight:500;white-space:nowrap;}
+.stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:10px;padding:6px 10px;}
+.stat-emoji{font-size:14px;}
+.stat-info{display:flex;flex-direction:column;}
+.stat-num{font-size:14px;font-weight:900;line-height:1;}
+.stat-lbl{font-size:9px;color:var(--gray);font-weight:500;white-space:nowrap;}
 .stat-div{display:none;}
 
 /* POPUP */
@@ -90,7 +98,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .spin{width:44px;height:44px;border:3px solid var(--gray2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .load-txt{font-size:13px;color:var(--gray);font-weight:500;}
-#map-spinner{position:fixed;bottom:90px;right:14px;z-index:600;background:var(--card);border:1px solid var(--gray2);border-radius:50%;width:36px;height:36px;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+#map-spinner{position:absolute;bottom:16px;right:14px;z-index:600;background:var(--card);border:1px solid var(--gray2);border-radius:50%;width:36px;height:36px;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.1);}
 #map-spinner.show{display:flex;}
 #map-spinner .mspin{width:18px;height:18px;border:2px solid var(--gray2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
 .leaflet-container{touch-action:pan-x pan-y !important;}
@@ -106,7 +114,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.0</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.1</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -132,20 +140,23 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 </div>
 
 <div id="map-screen">
-  <div id="map"></div>
-</div>
-<div id="map-spinner"><div class="mspin"></div></div>
-<div class="topbar">
-  <div class="icon-btn" onclick="goBack()">←</div>
-  <div class="topbar-info">
-    <span class="group-tag" id="gTag"></span>
-    <span class="topbar-loc" id="locTxt">위치 확인 중...</span>
+  <div id="map-wrap" style="position:relative;flex:1;min-height:0;">
+    <div id="map" style="width:100%;height:100%;"></div>
+    <div id="map-spinner"><div class="mspin"></div></div>
+    <div class="topbar">
+      <div class="icon-btn" onclick="goBack()">←</div>
+      <div class="topbar-info">
+        <span class="group-tag" id="gTag"></span>
+        <span class="topbar-loc" id="locTxt">위치 확인 중...</span>
+      </div>
+      <div class="icon-btn" onclick="flyHome()">📍</div>
+    </div>
   </div>
-  <div class="icon-btn" onclick="flyHome()">📍</div>
-</div>
-<div class="layer-panel">
-  <div class="chips" id="chips"></div>
-  <div class="stats-bar" id="statsBar"></div>
+  <div class="layer-panel">
+    <div class="panel-title">레이어 표시 설정</div>
+    <div class="chips" id="chips"></div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
 </div>
 
 <script>
@@ -206,16 +217,12 @@ function pick(el){
 function start(){
   document.getElementById('intro').classList.add('out');
   document.getElementById('map-screen').classList.add('show');
-  document.querySelector('.topbar').style.display='flex';
-  document.querySelector('.layer-panel').style.display='block';
   initMap();
 }
 
 function goBack(){
   document.getElementById('intro').classList.remove('out');
   document.getElementById('map-screen').classList.remove('show');
-  document.querySelector('.topbar').style.display='none';
-  document.querySelector('.layer-panel').style.display='none';
   if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}
   if(map){map.remove();map=null;}
   layers={};wmsTiles={};chipOn={};counts={};
