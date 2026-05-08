@@ -99,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.2</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.2.3</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -168,7 +168,7 @@ const WMS_API = {
   elder_c:  'https://safemap.go.kr/openapi2/IF_0082_WMS',
   children: 'https://safemap.go.kr/openapi2/IF_0081_WMS',
   cctv:     'https://safemap.go.kr/openapi2/IF_0131_WMS',
-  cpted:    'https://safemap.go.kr/openapi2/IF_0023',
+  cpted:    'https://www.safemap.go.kr/geoserver_pos/safemap/wms',
 };
 
 const LAYER = {
@@ -360,8 +360,17 @@ function addWMS(){
       const url = WMS_API[key];
       if(!url){console.warn('WMS URL 없음:',key);return;}
       let t;
-      // 모든 WMS 동일 방식 (CCTV 포함): srs=EPSG:4326, layers 없음
-      t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
+      if(key==='cpted'){
+        // CPTED: GeoServer 표준 WMS (인증 불필요, EPSG:3857)
+        t = L.tileLayer.wms(url,{
+          layers:'A2SM_CPTED_G', format:'image/png',
+          transparent:true, version:'1.3.0',
+          tiled:true, opacity:0.5, tileSize:256,
+        });
+      } else {
+        // 나머지: safemap bbox 방식
+        t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
+      }
       if(chipOn['w_'+key]) t.addTo(map);
       wmsTiles[key]=t;
     }catch(e){console.warn('WMS 오류',key,e);}
