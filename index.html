@@ -106,7 +106,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.9</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.0</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -315,14 +315,14 @@ function onLocated(){
   // CPTED 클릭 시 getMapLayerListPost.json 으로 정보 조회
   map.on('click', async function(e){
     if(!chipOn['w_cpted']||!wmsTiles['cpted']) return;
-    const b=map.getBounds();
-    const nw=L.CRS.EPSG3857.project(b.getNorthWest());
-    const se=L.CRS.EPSG3857.project(b.getSouthEast());
     const clickPt=L.CRS.EPSG3857.project(e.latlng);
+    // 클릭 위치 주변 300m 반경으로 bbox 제한
+    const D=300;
     const params=new URLSearchParams({
-      top:nw.y, bottom:se.y, left:nw.x, right:se.x,
+      top:clickPt.y+D, bottom:clickPt.y-D,
+      left:clickPt.x-D, right:clickPt.x+D,
       layer:'A2SM_CPTED_G', style:'A2SM_CPTED_G',
-      currentPage:'1', perPage:'50'
+      currentPage:'1', perPage:'10'
     });
     try{
       const res=await fetch('https://www.safemap.go.kr/com/cmm/getMapLayerListPost.json',{
@@ -332,15 +332,15 @@ function onLocated(){
       });
       const data=await res.json();
       const items=(data.layerList||[]).filter(it=>it.rn>0&&it.x&&it.y);
-      if(items.length===0) return;
-      // 클릭 위치에서 가장 가까운 항목 찾기
+      if(items.length===0) return; // 300m 내 구역 없으면 팝업 안 띄움
+      // 클릭 위치에서 가장 가까운 항목
       let closest=null, minDist=Infinity;
       items.forEach(it=>{
         const dx=it.x-clickPt.x, dy=it.y-clickPt.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if(dist<minDist){minDist=dist;closest=it;}
       });
-      if(!closest) return;
+      if(!closest||minDist>D) return; // 거리 초과 시 팝업 안 띄움
       const addr=closest.adres||'';
       L.popup({className:'safepopup',closeButton:true,maxWidth:260})
         .setLatLng(e.latlng)
