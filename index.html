@@ -63,7 +63,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .layer-panel{position:absolute;bottom:0;left:0;right:0;z-index:500;padding:0 14px 18px;pointer-events:none;}
 .chips{pointer-events:auto;display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:9px;scrollbar-width:none;}
 .chips::-webkit-scrollbar{display:none;}
-.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .2s;white-space:nowrap;opacity:.55;}
+.chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:100px;background:var(--card);border:1.5px solid var(--gray2);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .2s;white-space:nowrap;opacity:.55;font-family:'Noto Sans KR',sans-serif;-webkit-appearance:none;appearance:none;outline:none;}
 .chip.on{opacity:1;color:var(--navy);}
 .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .stats-bar{pointer-events:auto;background:var(--card);border:1px solid var(--gray2);border-radius:16px;padding:10px 12px;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
@@ -102,7 +102,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.2</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.3.3</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -233,8 +233,9 @@ function buildChips(){
   c.innerHTML='';
   g.xml.forEach(key=>{
     const m=LAYER[key]; chipOn[key]=true;
-    const el=document.createElement('div');
+    const el=document.createElement('button');
     el.className='chip on'; el.id='c_'+key;
+    el.type='button';
     el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>${m.emoji} ${m.label}`;
     el.addEventListener('click',()=>toggleXML(key));
     c.appendChild(el);
@@ -243,8 +244,9 @@ function buildChips(){
     const m=WMS_LAYER[key];
     const defaultOn=key!=='cpted'&&key!=='cctv';
     chipOn['w_'+key]=defaultOn;
-    const el=document.createElement('div');
+    const el=document.createElement('button');
     el.className=defaultOn?'chip on':'chip'; el.id='c_w_'+key;
+    el.type='button';
     el.innerHTML=`<span class="chip-dot" style="background:${m.color}"></span>🗺 ${m.label}`;
     el.addEventListener('click',()=>toggleWMS(key));
     c.appendChild(el);
