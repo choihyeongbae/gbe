@@ -131,7 +131,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.3</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.4</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -403,10 +403,10 @@ function onLocated(){
     moveTimer=setTimeout(()=>fetchAll(true),500);
   });
 
-  // CPTED 클릭 시 getMapLayerListPost.json 으로 정보 조회
-  map.on('click', async function(e){
+  // CPTED - PC는 click, 모바일은 touchend로 처리
+  async function handleCptedTap(latlng){
     if(!chipOn['w_cpted']||!wmsTiles['cpted']) return;
-    const clickPt=L.CRS.EPSG3857.project(e.latlng);
+    const clickPt=L.CRS.EPSG3857.project(latlng);
     // 클릭 위치 주변 300m 반경으로 bbox 제한
     const D=300;
     const params=new URLSearchParams({
@@ -434,7 +434,7 @@ function onLocated(){
       if(!closest||minDist>D) return; // 거리 초과 시 팝업 안 띄움
       const addr=closest.adres||'';
       L.popup({className:'safepopup',closeButton:true,maxWidth:260})
-        .setLatLng(e.latlng)
+        .setLatLng(latlng)
         .setContent(`
           <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
           <div class="ptitle">CPTED 구역</div>
@@ -442,7 +442,17 @@ function onLocated(){
           <div class="prow" style="color:#b45309">총 ${closest.totcnt}개 구역 운영 중</div>
         `).openOn(map);
     }catch(err){console.warn('CPTED 정보 조회 실패',err);}
-  });
+  }
+  // PC 클릭
+  map.on('click', e=>handleCptedTap(e.latlng));
+  // 모바일 터치
+  document.getElementById('map').addEventListener('touchend', function(e){
+    if(e.changedTouches.length!==1) return;
+    const t=e.changedTouches[0];
+    const rect=this.getBoundingClientRect();
+    const pt=L.point(t.clientX-rect.left, t.clientY-rect.top);
+    handleCptedTap(map.containerPointToLatLng(pt));
+  },{passive:true});
 }
 
 function drawMe(){
