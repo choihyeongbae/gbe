@@ -48,7 +48,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 #map-screen.show{display:flex;}
 #map{flex:1;width:100%;min-height:0;}
 
-.topbar{position:absolute;top:0;left:0;right:0;z-index:100;padding:12px 14px 0;display:flex;gap:8px;align-items:center;}
+.topbar{position:absolute;top:0;left:0;right:0;z-index:9999;padding:12px 14px 0;display:flex;gap:8px;align-items:center;}
 .icon-btn{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;touch-action:manipulation;}
 .icon-btn:active{background:#dbeafe;}
 .topbar-info{flex:1;background:var(--card);border:1px solid var(--gray2);border-radius:13px;padding:8px 13px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;}
@@ -131,7 +131,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.6</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.7</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -366,7 +366,16 @@ function toggleXML(key){
 function toggleWMS(key){
   const cb=document.getElementById('c_w_'+key);
   chipOn['w_'+key]=cb.checked;
-  if(wmsTiles[key]) wmsTiles[key].setOpacity(chipOn['w_'+key]?0.5:0);
+  if(!wmsTiles[key]) return;
+  const on=chipOn['w_'+key];
+  try{
+    // display 방식 (즉각 반응)
+    const container=wmsTiles[key].getContainer();
+    if(container) container.style.display=on?'':'none';
+    else wmsTiles[key].setOpacity(on?0.5:0);
+  }catch(e){
+    wmsTiles[key].setOpacity(on?0.5:0);
+  }
 }
 
 /* ── GPS ── */
@@ -522,8 +531,17 @@ function addWMS(){
         t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
       }
       t.addTo(map);
-      if(!chipOn['w_'+key]) t.setOpacity(0);
       wmsTiles[key]=t;
+      // 초기 비활성 레이어는 렌더링 후 숨기기
+      if(!chipOn['w_'+key]){
+        setTimeout(()=>{
+          try{
+            const c=t.getContainer();
+            if(c) c.style.display='none';
+            else t.setOpacity(0);
+          }catch(e){ t.setOpacity(0); }
+        },100);
+      }
     }catch(e){console.warn('WMS 오류',key,e);}
   });
 }
