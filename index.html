@@ -305,6 +305,7 @@ const GROUP = {
 let map, myMark, myLat, myLng, grp=null;
 let layers={}, wmsTiles={}, chipOn={}, counts={};
 let watchId=null;
+let mapDomCleanups=[];
 
 /* ── 인트로 ── */
 function pick(el){
@@ -330,6 +331,9 @@ function goBack(){
     navigator.geolocation.clearWatch(watchId);
     watchId=null;
   }
+
+  mapDomCleanups.forEach(fn=>fn());
+  mapDomCleanups=[];
 
   if(map){
     map.remove();
@@ -526,17 +530,26 @@ function onLocated(){
   async function handleCptedTap(latlng){
     if(!chipOn['w_cpted']||!wmsTiles['cpted']) return;
 
+    const spinner=document.getElementById('map-spinner');
+    if(spinner) spinner.classList.add('show');
+
     const clickPt=L.CRS.EPSG3857.project(latlng);
-    const D=300;
+
+    // CPTED는 점 마커가 아니라 구역형 WMS라서, 터치 지점 300m만 조회하면 대표 좌표가 범위 밖으로 빠질 수 있음.
+    // 그래서 현재 화면 범위를 기준으로 CPTED 목록을 가져온 뒤, 터치 지점과 가장 가까운 항목을 골라 팝업으로 표시함.
+    const b=map.getBounds().pad(0.25);
+    const nw=L.CRS.EPSG3857.project(b.getNorthWest());
+    const se=L.CRS.EPSG3857.project(b.getSouthEast());
+
     const params=new URLSearchParams({
-      top:clickPt.y+D,
-      bottom:clickPt.y-D,
-      left:clickPt.x-D,
-      right:clickPt.x+D,
+      top:nw.y,
+      bottom:se.y,
+      left:nw.x,
+      right:se.x,
       layer:'A2SM_CPTED_G',
       style:'A2SM_CPTED_G',
       currentPage:'1',
-      perPage:'10'
+      perPage:'200'
     });
 
     try{
@@ -545,47 +558,111 @@ function onLocated(){
         headers:{'Content-Type':'application/x-www-form-urlencoded'},
         body:params
       });
+
       const data=await res.json();
-      const items=(data.layerList||[]).filter(it=>it.rn>0&&it.x&&it.y);
-      if(items.length===0) return;
+      const items=(data.layerList||[]).filter(it=>it.x&&it.y);
+
+      if(items.length===0){
+        L.popup({className:'safepopup',closeButton:true,maxWidth:260})
+          .setLatLng(latlng)
+          .setContent(`
+            <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
+            <div class="ptitle">조회 가능한 CPTED 정보 없음</div>
+            <div class="prow">현재 화면 주변에서 CPTED 상세 정보를 찾지 못했습니다.</div>
+          `).openOn(map);
+        return;
+      }
 
       let closest=null;
       let minDist=Infinity;
+
       items.forEach(it=>{
-        const dx=it.x-clickPt.x;
-        const dy=it.y-clickPt.y;
+        const x=parseFloat(it.x);
+        const y=parseFloat(it.y);
+        if(isNaN(x)||isNaN(y)) return;
+
+        const dx=x-clickPt.x;
+        const dy=y-clickPt.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
+
         if(dist<minDist){
           minDist=dist;
           closest=it;
         }
       });
 
-      if(!closest||minDist>D) return;
-      const addr=closest.adres||'';
+      if(!closest){
+        L.popup({className:'safepopup',closeButton:true,maxWidth:260})
+          .setLatLng(latlng)
+          .setContent(`
+            <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
+            <div class="ptitle">CPTED 정보 확인 불가</div>
+            <div class="prow">가장 가까운 구역 정보를 계산하지 못했습니다.</div>
+          `).openOn(map);
+        return;
+      }
 
+      const addr=closest.adres||closest.roadnm_add||closest.jibun_addr||'';
+      const district=closest.jurisd_inst_nm||closest.jp_nm||'';
+      const distText=minDist<1000?`${Math.round(minDist)}m`:`${(minDist/1000).toFixed(1)}km`;
+
+      L.popup({className:'safepopup',closeButton:true,maxWidth:270})
+        .setLatLng(latlng)
+        .setContent(`
+          <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
+          <div class="ptitle">가까운 CPTED 구역</div>
+          ${addr?`<div class="prow">📍 ${addr}</div>`:''}
+          ${district?`<div class="prow">🏢 ${district}</div>`:''}
+          <div class="prow" style="color:#b45309">터치 지점 기준 약 ${distText}</div>
+          ${closest.totcnt?`<div class="prow">현재 화면 내 ${closest.totcnt}개 구역 조회</div>`:''}
+        `).openOn(map);
+    }catch(err){
+      console.warn('CPTED 정보 조회 실패',err);
       L.popup({className:'safepopup',closeButton:true,maxWidth:260})
         .setLatLng(latlng)
         .setContent(`
           <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
-          <div class="ptitle">CPTED 구역</div>
-          ${addr?`<div class="prow">📍 ${addr}</div>`:''}
-          <div class="prow" style="color:#b45309">총 ${closest.totcnt}개 구역 운영 중</div>
+          <div class="ptitle">CPTED 정보 조회 실패</div>
+          <div class="prow">공공데이터 서버 응답이 없거나 일시적으로 차단되었습니다.</div>
         `).openOn(map);
-    }catch(err){
-      console.warn('CPTED 정보 조회 실패',err);
+    }finally{
+      if(spinner) spinner.classList.remove('show');
     }
   }
 
   map.on('click', e=>handleCptedTap(e.latlng));
 
-  document.getElementById('map').addEventListener('touchend', function(e){
-    if(e.changedTouches.length!==1) return;
-    const t=e.changedTouches[0];
-    const rect=this.getBoundingClientRect();
-    const pt=L.point(t.clientX-rect.left, t.clientY-rect.top);
+  // 모바일 보강: Leaflet click 변환이 실패해도 pointerup으로 직접 좌표를 계산해 CPTED 조회
+  const mapEl=map.getContainer();
+  let pointerStart=null;
+
+  const onPointerDown=e=>{
+    if(e.pointerType==='mouse') return;
+    pointerStart={x:e.clientX,y:e.clientY,t:Date.now()};
+  };
+
+  const onPointerUp=e=>{
+    if(e.pointerType==='mouse'||!pointerStart) return;
+
+    const dx=e.clientX-pointerStart.x;
+    const dy=e.clientY-pointerStart.y;
+    const dt=Date.now()-pointerStart.t;
+    pointerStart=null;
+
+    // 지도 이동/드래그는 터치로 처리하지 않음
+    if(Math.sqrt(dx*dx+dy*dy)>12||dt>900) return;
+
+    const rect=mapEl.getBoundingClientRect();
+    const pt=L.point(e.clientX-rect.left,e.clientY-rect.top);
     handleCptedTap(map.containerPointToLatLng(pt));
-  },{passive:true});
+  };
+
+  mapEl.addEventListener('pointerdown',onPointerDown,{passive:true});
+  mapEl.addEventListener('pointerup',onPointerUp,{passive:true});
+  mapDomCleanups.push(()=>{
+    mapEl.removeEventListener('pointerdown',onPointerDown);
+    mapEl.removeEventListener('pointerup',onPointerUp);
+  });
 }
 
 function drawMe(){
