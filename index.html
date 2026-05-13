@@ -43,7 +43,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .start-btn.on{opacity:1;pointer-events:auto;}
 .start-btn.on:hover{background:#1d4ed8;transform:translateY(-1px);}
 
-/* MAP SCREEN - flex column, 지도 위 + 패널 아래 완전 분리 */
+/* MAP SCREEN */
 #map-screen{position:fixed;inset:0;display:none;flex-direction:column;}
 #map-screen.show{display:flex;}
 #map{flex:1;width:100%;min-height:0;}
@@ -85,13 +85,44 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .chip-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .chip-label{font-size:13px;font-weight:600;color:var(--navy);}
 .chip-sub{font-size:11px;color:var(--gray);margin-top:1px;}
-/* iOS 토글 스위치 */
-.toggle{position:relative;width:44px;height:26px;flex-shrink:0;}
-.toggle input{opacity:0;width:0;height:0;position:absolute;}
-.toggle-track{position:absolute;inset:0;border-radius:13px;background:var(--gray2);transition:background .2s;cursor:pointer;}
-.toggle input:checked+.toggle-track{background:var(--blue);}
-.toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .2s;pointer-events:none;}
-.toggle input:checked~.toggle-thumb{transform:translateX(18px);}
+
+/* 모바일 안정형 토글 스위치 */
+.toggle{
+  position:relative;
+  width:44px;
+  height:26px;
+  flex-shrink:0;
+  border:0;
+  padding:0;
+  background:transparent;
+  cursor:pointer;
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.toggle-track{
+  position:absolute;
+  inset:0;
+  border-radius:13px;
+  background:var(--gray2);
+  transition:background .2s;
+  pointer-events:none;
+}
+.toggle-thumb{
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  transition:transform .2s;
+  pointer-events:none;
+}
+.toggle.on .toggle-track{background:var(--blue);}
+.toggle.on .toggle-thumb{transform:translateX(18px);}
+
 .stats-bar{display:flex;gap:8px;overflow-x:auto;padding-top:10px;border-top:1px solid var(--gray2);scrollbar-width:none;}
 .stats-bar::-webkit-scrollbar{display:none;}
 .stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:10px;padding:6px 10px;}
@@ -131,7 +162,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.7</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.8</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -168,6 +199,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
     <div class="icon-btn" onclick="flyHome()">📍</div>
   </div>
 </div>
+
 <div id="sheet">
   <div class="sheet-handle-wrap" id="sheetHandle">
     <div class="sheet-handle"></div>
@@ -181,7 +213,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 
 <script>
 /* ── Bottom Sheet ── */
+let sheetInited = false;
+
 function initSheet(){
+  if(sheetInited) return;
+  sheetInited = true;
+
   const sheet=document.getElementById('sheet');
   const handle=document.getElementById('sheetHandle');
   let startY=0, startT=0, isDragging=false;
@@ -209,14 +246,13 @@ function initSheet(){
     const dy=e.changedTouches[0].clientY-startY;
     const dt=Date.now()-startT;
     const isOpen=sheet.classList.contains('open');
-    // 빠른 스와이프 or 절반 이상 드래그
-    if((!isOpen && (dy<-50||( dt<300&&dy<-20)))||(isOpen&&dy>50)) {
+
+    if((!isOpen && (dy<-50||(dt<300&&dy<-20)))||(isOpen&&dy>50)) {
       sheet.classList.toggle('open');
     }
     sheet.style.transform='';
   },{passive:true});
 
-  // 핸들 탭으로 열고 닫기
   handle.addEventListener('click',()=>{
     sheet.classList.toggle('open');
     sheet.style.transform='';
@@ -227,7 +263,6 @@ function initSheet(){
 const API_KEY = 'EYQ7ZKD8-EYQ7-EYQ7-EYQ7-EYQ7ZKD8HA';
 const R_KM = 1.0;
 
-// safemap 내부 마커 API
 const MARKER_API = 'https://safemap.go.kr/layer/getMarkerLayerPost.json';
 const LAYER_API = {
   bell:       {layer:'A2SM_CMMNPOI_EMGBELL', style:'A2SM_CMMNPOI_EMGBELL'},
@@ -236,7 +271,6 @@ const LAYER_API = {
   cctv:       {layer:'A2SM_CCTV_INFO',       style:'A2SM_CCTV_INFO'},
 };
 
-// WMS API
 const WMS_API = {
   women:    'https://safemap.go.kr/openapi2/IF_0080_WMS',
   elder_c:  'https://safemap.go.kr/openapi2/IF_0082_WMS',
@@ -252,6 +286,7 @@ const LAYER = {
   cpted:      {label:'범죄예방환경설계',   color:'#b45309', emoji:'🏗'},
   cctv:       {label:'CCTV',             color:'#2563eb', emoji:'📷'},
 };
+
 const WMS_LAYER = {
   women:    {label:'여성밤길안전',   color:'#db2777'},
   elder_c:  {label:'노인범죄주의',   color:'#ea580c'},
@@ -259,6 +294,7 @@ const WMS_LAYER = {
   cctv:     {label:'CCTV',          color:'#2563eb'},
   cpted:    {label:'범죄예방환경설계', color:'#b45309'},
 };
+
 const GROUP = {
   child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children','cpted'], special:'child_house'},
   youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','child_house','cctv'], wms:['women','cpted'], special:null},
@@ -268,6 +304,7 @@ const GROUP = {
 /* ── 상태 ── */
 let map, myMark, myLat, myLng, grp=null;
 let layers={}, wmsTiles={}, chipOn={}, counts={};
+let watchId=null;
 
 /* ── 인트로 ── */
 function pick(el){
@@ -288,29 +325,45 @@ function goBack(){
   document.getElementById('intro').classList.remove('out');
   document.getElementById('map-screen').classList.remove('show');
   document.getElementById('sheet').classList.remove('show','open');
-  if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}
-  if(map){map.remove();map=null;}
-  layers={};wmsTiles={};chipOn={};counts={};
+
+  if(watchId){
+    navigator.geolocation.clearWatch(watchId);
+    watchId=null;
+  }
+
+  if(map){
+    map.remove();
+    map=null;
+  }
+
+  myMark=null;
+  layers={};
+  wmsTiles={};
+  chipOn={};
+  counts={};
 }
 
 /* ── 지도 ── */
 function initMap(){
   map = L.map('map',{zoomControl:false,attributionControl:false,tap:false,tapTolerance:15}).setView([36.5,127.8],7);
-  // 밝은 지도 타일
+
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     {maxZoom:19,subdomains:'abcd'}).addTo(map);
+
   buildChips();
   initSheet();
   getGPS();
-
 }
 
 function buildChips(){
-  const g=GROUP[grp], c=document.getElementById('chips');
+  const g=GROUP[grp];
+  const c=document.getElementById('chips');
   c.innerHTML='';
 
   g.xml.forEach(key=>{
-    const m=LAYER[key]; chipOn[key]=true;
+    const m=LAYER[key];
+    chipOn[key]=true;
+
     const row=document.createElement('div');
     row.className='chip-row';
     row.innerHTML=`
@@ -320,11 +373,11 @@ function buildChips(){
           <div class="chip-label">${m.emoji} ${m.label}</div>
         </div>
       </div>
-      <label class="toggle">
-        <input type="checkbox" id="c_${key}" checked onchange="toggleXML('${key}')">
+      <button type="button" class="toggle on" aria-pressed="true"
+        data-kind="xml" data-key="${key}" onclick="toggleChip(event,this)">
         <div class="toggle-track"></div>
         <div class="toggle-thumb"></div>
-      </label>`;
+      </button>`;
     c.appendChild(row);
   });
 
@@ -332,6 +385,7 @@ function buildChips(){
     const m=WMS_LAYER[key];
     const defaultOn=key!=='cpted'&&key!=='cctv';
     chipOn['w_'+key]=defaultOn;
+
     const row=document.createElement('div');
     row.className='chip-row';
     row.innerHTML=`
@@ -341,35 +395,79 @@ function buildChips(){
           <div class="chip-label">🗺 ${m.label}</div>
         </div>
       </div>
-      <label class="toggle">
-        <input type="checkbox" id="c_w_${key}" ${defaultOn?'checked':''} onchange="toggleWMS('${key}')">
+      <button type="button" class="toggle ${defaultOn?'on':''}" aria-pressed="${defaultOn?'true':'false'}"
+        data-kind="wms" data-key="${key}" onclick="toggleChip(event,this)">
         <div class="toggle-track"></div>
         <div class="toggle-thumb"></div>
-      </label>`;
+      </button>`;
     c.appendChild(row);
   });
 
-  const t=document.getElementById('gTag'), g2=GROUP[grp];
+  const t=document.getElementById('gTag');
+  const g2=GROUP[grp];
   t.textContent=g2.emoji+' '+g2.label;
   t.className='group-tag '+grp;
 }
 
+/* 모바일 안정형 토글 처리 */
+function toggleChip(e, btn){
+  e.preventDefault();
+  e.stopPropagation();
+
+  const kind = btn.dataset.kind;
+  const key = btn.dataset.key;
+  const next = btn.getAttribute('aria-pressed') !== 'true';
+
+  btn.setAttribute('aria-pressed', next ? 'true' : 'false');
+  btn.classList.toggle('on', next);
+
+  if(kind === 'xml'){
+    chipOn[key] = next;
+
+    if(layers[key]){
+      next ? map.addLayer(layers[key]) : map.removeLayer(layers[key]);
+    }else if(next){
+      fetchLayer(key).then(()=>updateStats());
+    }
+
+    updateStats();
+    return;
+  }
+
+  if(kind === 'wms'){
+    chipOn['w_' + key] = next;
+
+    if(!wmsTiles[key]) return;
+
+    try{
+      const container = wmsTiles[key].getContainer();
+      if(container){
+        container.style.display = next ? '' : 'none';
+      }else{
+        wmsTiles[key].setOpacity(next ? 0.5 : 0);
+      }
+    }catch(err){
+      wmsTiles[key].setOpacity(next ? 0.5 : 0);
+    }
+  }
+}
+
+/* 기존 함수는 혹시 다른 코드에서 호출할 경우를 대비해 유지 */
 function toggleXML(key){
-  const cb=document.getElementById('c_'+key);
-  chipOn[key]=cb.checked;
+  chipOn[key]=!chipOn[key];
   if(layers[key]){
     chipOn[key]?map.addLayer(layers[key]):map.removeLayer(layers[key]);
   } else if(chipOn[key]){
     fetchLayer(key).then(()=>updateStats());
   }
+  updateStats();
 }
+
 function toggleWMS(key){
-  const cb=document.getElementById('c_w_'+key);
-  chipOn['w_'+key]=cb.checked;
+  chipOn['w_'+key]=!chipOn['w_'+key];
   if(!wmsTiles[key]) return;
   const on=chipOn['w_'+key];
   try{
-    // display 방식 (즉각 반응)
     const container=wmsTiles[key].getContainer();
     if(container) container.style.display=on?'':'none';
     else wmsTiles[key].setOpacity(on?0.5:0);
@@ -379,25 +477,38 @@ function toggleWMS(key){
 }
 
 /* ── GPS ── */
-let watchId=null;
 function getGPS(){
-  if(!navigator.geolocation){useDefault();return;}
-  // 첫 위치 받기
+  if(!navigator.geolocation){
+    useDefault();
+    return;
+  }
+
   navigator.geolocation.getCurrentPosition(
-    p=>{myLat=p.coords.latitude;myLng=p.coords.longitude;onLocated();},
-    ()=>useDefault(),{timeout:7000,enableHighAccuracy:true}
+    p=>{
+      myLat=p.coords.latitude;
+      myLng=p.coords.longitude;
+      onLocated();
+    },
+    ()=>useDefault(),
+    {timeout:7000,enableHighAccuracy:true}
   );
-  // 실시간 위치 추적
+
   watchId=navigator.geolocation.watchPosition(
     p=>{
-      myLat=p.coords.latitude;myLng=p.coords.longitude;
-      drawMe(); // 아이콘만 업데이트 (지도 이동 없음)
+      myLat=p.coords.latitude;
+      myLng=p.coords.longitude;
+      drawMe();
     },
     ()=>{},
     {enableHighAccuracy:true,maximumAge:3000}
   );
 }
-function useDefault(){myLat=36.0190;myLng=129.3435;onLocated();}
+
+function useDefault(){
+  myLat=36.0190;
+  myLng=129.3435;
+  onLocated();
+}
 
 function onLocated(){
   map.setView([myLat,myLng],15);
@@ -405,25 +516,29 @@ function onLocated(){
   revGeo();
   addWMS();
   fetchAll();
-  // 지도 이동/줌 시 데이터 새로고침 (debounce 500ms)
+
   let moveTimer=null;
   map.on('moveend',()=>{
     clearTimeout(moveTimer);
     moveTimer=setTimeout(()=>fetchAll(true),500);
   });
 
-  // CPTED - PC는 click, 모바일은 touchend로 처리
   async function handleCptedTap(latlng){
     if(!chipOn['w_cpted']||!wmsTiles['cpted']) return;
+
     const clickPt=L.CRS.EPSG3857.project(latlng);
-    // 클릭 위치 주변 300m 반경으로 bbox 제한
     const D=300;
     const params=new URLSearchParams({
-      top:clickPt.y+D, bottom:clickPt.y-D,
-      left:clickPt.x-D, right:clickPt.x+D,
-      layer:'A2SM_CPTED_G', style:'A2SM_CPTED_G',
-      currentPage:'1', perPage:'10'
+      top:clickPt.y+D,
+      bottom:clickPt.y-D,
+      left:clickPt.x-D,
+      right:clickPt.x+D,
+      layer:'A2SM_CPTED_G',
+      style:'A2SM_CPTED_G',
+      currentPage:'1',
+      perPage:'10'
     });
+
     try{
       const res=await fetch('https://www.safemap.go.kr/com/cmm/getMapLayerListPost.json',{
         method:'POST',
@@ -432,16 +547,23 @@ function onLocated(){
       });
       const data=await res.json();
       const items=(data.layerList||[]).filter(it=>it.rn>0&&it.x&&it.y);
-      if(items.length===0) return; // 300m 내 구역 없으면 팝업 안 띄움
-      // 클릭 위치에서 가장 가까운 항목
-      let closest=null, minDist=Infinity;
+      if(items.length===0) return;
+
+      let closest=null;
+      let minDist=Infinity;
       items.forEach(it=>{
-        const dx=it.x-clickPt.x, dy=it.y-clickPt.y;
+        const dx=it.x-clickPt.x;
+        const dy=it.y-clickPt.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist<minDist){minDist=dist;closest=it;}
+        if(dist<minDist){
+          minDist=dist;
+          closest=it;
+        }
       });
-      if(!closest||minDist>D) return; // 거리 초과 시 팝업 안 띄움
+
+      if(!closest||minDist>D) return;
       const addr=closest.adres||'';
+
       L.popup({className:'safepopup',closeButton:true,maxWidth:260})
         .setLatLng(latlng)
         .setContent(`
@@ -450,11 +572,13 @@ function onLocated(){
           ${addr?`<div class="prow">📍 ${addr}</div>`:''}
           <div class="prow" style="color:#b45309">총 ${closest.totcnt}개 구역 운영 중</div>
         `).openOn(map);
-    }catch(err){console.warn('CPTED 정보 조회 실패',err);}
+    }catch(err){
+      console.warn('CPTED 정보 조회 실패',err);
+    }
   }
-  // PC 클릭
+
   map.on('click', e=>handleCptedTap(e.latlng));
-  // 모바일 터치
+
   document.getElementById('map').addEventListener('touchend', function(e){
     if(e.changedTouches.length!==1) return;
     const t=e.changedTouches[0];
@@ -465,27 +589,40 @@ function onLocated(){
 }
 
 function drawMe(){
+  if(!map || !myLat || !myLng) return;
   if(myMark)map.removeLayer(myMark);
+
   const g=GROUP[grp];
   const icon=L.divIcon({
     html:`<div style="width:42px;height:42px;border-radius:50%;background:${g.color};border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 3px 12px rgba(0,0,0,.25);">${g.emoji}</div>`,
-    className:'',iconSize:[42,42],iconAnchor:[21,21]
+    className:'',
+    iconSize:[42,42],
+    iconAnchor:[21,21]
   });
+
   myMark=L.marker([myLat,myLng],{icon,zIndexOffset:1000}).addTo(map);
   myMark.bindPopup(`<div class="ptitle">📍 현재 내 위치</div><div class="prow">반경 ${R_KM}km 내 안전시설을 표시합니다</div>`);
 }
-function flyHome(){if(myLat)map.flyTo([myLat,myLng],15,{duration:1});}
+
+function flyHome(){
+  if(myLat&&myLng&&map){
+    map.flyTo([myLat,myLng],15,{duration:1});
+  }
+}
 
 function revGeo(){
   fetch(`https://nominatim.openstreetmap.org/reverse?lat=${myLat}&lon=${myLng}&format=json&accept-language=ko`)
-    .then(r=>r.json()).then(d=>{
-      const a=d.address;
+    .then(r=>r.json())
+    .then(d=>{
+      const a=d.address||{};
       document.getElementById('locTxt').textContent=a.city_district||a.suburb||a.neighbourhood||a.county||'위치 확인됨';
-    }).catch(()=>{document.getElementById('locTxt').textContent='위치 확인됨';});
+    })
+    .catch(()=>{
+      document.getElementById('locTxt').textContent='위치 확인됨';
+    });
 }
 
-/* ── WMS (safemap 커스텀 방식) ── */
-// EPSG:4326용 (여성밤길, 노인, 어린이) - layers 파라미터 없음
+/* ── WMS ── */
 const SafemapWMS4326 = L.TileLayer.extend({
   getTileUrl: function(coords){
     const b = this._tileCoordsToBounds(coords);
@@ -498,7 +635,6 @@ const SafemapWMS4326 = L.TileLayer.extend({
   }
 });
 
-// CCTV: bbox는 4326 좌표, srs=EPSG:3857, layers 파라미터 포함
 const SafemapWMS3857 = L.TileLayer.extend({
   getTileUrl: function(coords){
     const b = this._tileCoordsToBounds(coords);
@@ -517,32 +653,43 @@ function addWMS(){
   GROUP[grp].wms.forEach(key=>{
     try{
       const url = WMS_API[key];
-      if(!url){console.warn('WMS URL 없음:',key);return;}
+      if(!url){
+        console.warn('WMS URL 없음:',key);
+        return;
+      }
+
       let t;
       if(key==='cpted'){
-        // CPTED: GeoServer 표준 WMS (인증 불필요, EPSG:3857)
         t = L.tileLayer.wms(url,{
-          layers:'A2SM_CPTED_G', format:'image/png',
-          transparent:true, version:'1.3.0',
-          tiled:true, opacity:0.5, tileSize:256,
+          layers:'A2SM_CPTED_G',
+          format:'image/png',
+          transparent:true,
+          version:'1.3.0',
+          tiled:true,
+          opacity:0.5,
+          tileSize:256,
         });
       } else {
-        // 나머지: safemap bbox 방식
         t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
       }
+
       t.addTo(map);
       wmsTiles[key]=t;
-      // 초기 비활성 레이어는 렌더링 후 숨기기
+
       if(!chipOn['w_'+key]){
         setTimeout(()=>{
           try{
             const c=t.getContainer();
             if(c) c.style.display='none';
             else t.setOpacity(0);
-          }catch(e){ t.setOpacity(0); }
+          }catch(e){
+            t.setOpacity(0);
+          }
         },100);
       }
-    }catch(e){console.warn('WMS 오류',key,e);}
+    }catch(e){
+      console.warn('WMS 오류',key,e);
+    }
   });
 }
 
@@ -550,10 +697,15 @@ function addWMS(){
 async function fetchAll(silent=false){
   const spinner=document.getElementById('map-spinner');
   if(spinner) spinner.classList.add('show');
+
   try{
     GROUP[grp].xml.forEach(k=>{
-      if(layers[k]){map.removeLayer(layers[k]);layers[k]=null;}
+      if(layers[k]){
+        map.removeLayer(layers[k]);
+        layers[k]=null;
+      }
     });
+
     await Promise.allSettled(GROUP[grp].xml.map(k=>fetchLayer(k)));
     updateStats();
   }catch(e){
@@ -565,52 +717,75 @@ async function fetchAll(silent=false){
 
 async function fetchLayer(key){
   const cfg=LAYER_API[key];
-  if(!cfg){console.warn('['+key+'] LAYER_API 없음');return;}
+  if(!cfg){
+    console.warn('['+key+'] LAYER_API 없음');
+    return;
+  }
+
   const bounds=map.getBounds();
-  // area4326: top,bottom,left,right
+
   const area4326=[
     bounds.getNorth(),bounds.getSouth(),
     bounds.getWest(),bounds.getEast()
   ].join(',');
-  // area3857: top,bottom,left,right (EPSG:3857 미터 좌표)
+
   const nw=L.CRS.EPSG3857.project(bounds.getNorthWest());
   const se=L.CRS.EPSG3857.project(bounds.getSouthEast());
   const area3857=[nw.y,se.y,nw.x,se.x].join(',');
 
   const params=new URLSearchParams({
-    layerName:cfg.layer, style:cfg.style,
-    area4326, area3857,
-    currentPage:'1', perPage:'500'
+    layerName:cfg.layer,
+    style:cfg.style,
+    area4326,
+    area3857,
+    currentPage:'1',
+    perPage:'500'
   });
+
   try{
     const ctrl=new AbortController();
     setTimeout(()=>ctrl.abort(),10000);
+
     const res=await fetch(MARKER_API,{
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:params, signal:ctrl.signal
+      body:params,
+      signal:ctrl.signal
     });
+
     const data=await res.json();
     const items=data.resultList||[];
-    if(items.length===0)throw new Error('no items');
-    const lg=L.layerGroup(); let cnt=0;
+
+    if(items.length===0) throw new Error('no items');
+
+    const lg=L.layerGroup();
+    let cnt=0;
+
     items.forEach(it=>{
       let lat=parseFloat(it.lat||0);
       let lng=parseFloat(it.lon||0);
-      // lat/lon 없으면 x,y(EPSG:3857) → WGS84 변환
+
       if(!lat||!lng){
         const px=parseFloat(it.x||0);
         const py=parseFloat(it.y||0);
         if(px&&py){
           const pt=L.CRS.EPSG3857.unproject(L.point(px,py));
-          lat=pt.lat; lng=pt.lng;
+          lat=pt.lat;
+          lng=pt.lng;
         }
       }
-      if(!lat||!lng||isNaN(lat)||isNaN(lng))return;
-      mkMarker(key,lat,lng,it).addTo(lg); cnt++;
+
+      if(!lat||!lng||isNaN(lat)||isNaN(lng)) return;
+      mkMarker(key,lat,lng,it).addTo(lg);
+      cnt++;
     });
-    lg.addTo(map); layers[key]=lg; counts[key]=cnt;
-    if(!chipOn[key])map.removeLayer(lg);
+
+    lg.addTo(map);
+    layers[key]=lg;
+    counts[key]=cnt;
+
+    if(!chipOn[key]) map.removeLayer(lg);
+
     updateStats();
     console.log('['+key+'] 로드완료:'+cnt+'개');
   }catch(e){
@@ -618,10 +793,14 @@ async function fetchLayer(key){
   }
 }
 
-function xv(it,tag){return it&&it[tag]!=null?String(it[tag]).trim():'';}
+function xv(it,tag){
+  return it&&it[tag]!=null?String(it[tag]).trim():'';
+}
 
 function near(lat,lng){
-  const R=6371,dl=(myLat-lat)*Math.PI/180,dg=(myLng-lng)*Math.PI/180;
+  const R=6371;
+  const dl=(myLat-lat)*Math.PI/180;
+  const dg=(myLng-lng)*Math.PI/180;
   const a=Math.sin(dl/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(myLat*Math.PI/180)*Math.sin(dg/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))<=R_KM;
 }
@@ -630,16 +809,15 @@ function near(lat,lng){
 function mkMarker(key,lat,lng,it){
   const m=LAYER[key];
   let name='',addr='',extra='';
+
   if(key==='bell'){
-    // 안전비상벨 필드: ins_detail(설치위치), rn_adres(도로명), flag_pol_l(경찰연계)
     name=xv(it,'ins_detail')||xv(it,'rn_adres')||'안전비상벨';
     addr=xv(it,'rn_adres')||xv(it,'adres')||'';
     const pc=xv(it,'flag_pol_l')||'';
     extra=pc==='Y'?'<span style="color:#059669">✓ 경찰 연계</span>':'<span style="color:#dc2626">✗ 경찰 미연계</span>';
     const tel=xv(it,'mng_tel')||'';
-    if(tel)extra+=`<br><span style="color:#64748b">📞 ${tel}</span>`;
+    if(tel) extra+=`<br><span style="color:#64748b">📞 ${tel}</span>`;
   }else if(key==='police'){
-    // 치안시설 필드: fclty_nm(시설명), rn_adres(도로명), fclty_ty(유형)
     name=xv(it,'fclty_nm')||'치안시설';
     addr=xv(it,'rn_adres')||xv(it,'adres')||'';
     const tp=xv(it,'fclty_ty')||'';
@@ -661,7 +839,6 @@ function mkMarker(key,lat,lng,it){
     const tel=xv(it,'telno')||'';
     extra='<span style="color:#059669">🏠 아동 보호</span>'+(tel?` <span style="color:#64748b">📞 ${tel}</span>`:'');
   }else if(key==='cpted'){
-    // CPTED 필드: roadnm_add(도로명), dsign_prps(디자인종류), jp_nm(지구대명)
     name=xv(it,'roadnm_add')||xv(it,'jibun_addr')||'범죄예방환경설계';
     addr=xv(it,'roadnm_add')||'';
     const tp=xv(it,'dsign_prps')||'';
@@ -669,10 +846,14 @@ function mkMarker(key,lat,lng,it){
     extra=(tp?`<span style="color:#b45309">${tp}</span> `:'')+
           (jp?`<span style="color:#64748b">📍 ${jp}</span>`:'');
   }
+
   const icon=L.divIcon({
     html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);">${m.emoji}</div>`,
-    className:'',iconSize:[36,36],iconAnchor:[18,18]
+    className:'',
+    iconSize:[36,36],
+    iconAnchor:[18,18]
   });
+
   return L.marker([lat,lng],{icon}).bindPopup(
     L.popup({className:'safepopup',closeButton:true,maxWidth:240}).setContent(`
       <div class="pbadge" style="background:${m.color}18;color:${m.color}">${m.emoji} ${m.label}</div>
@@ -686,10 +867,11 @@ function mkMarker(key,lat,lng,it){
 /* ── 통계 ── */
 function updateStats(){
   const bar=document.getElementById('statsBar');
-  if(!bar) return;
+  if(!bar || !grp) return;
+
   const g=GROUP[grp];
   const items=[];
-  // XML 레이어 카운트
+
   g.xml.forEach(key=>{
     const m=LAYER[key];
     if(!m) return;
@@ -702,6 +884,7 @@ function updateStats(){
       </div>
     </div>`);
   });
+
   bar.innerHTML=items.join('');
 }
 
