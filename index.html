@@ -42,6 +42,14 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .start-btn{width:100%;padding:16px;border-radius:14px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;opacity:.35;pointer-events:none;font-family:'Noto Sans KR',sans-serif;}
 .start-btn.on{opacity:1;pointer-events:auto;}
 .start-btn.on:hover{background:#1d4ed8;transform:translateY(-1px);}
+.cpted-entry{width:100%;margin-top:12px;padding-top:14px;border-top:1px solid rgba(100,116,139,.18);}
+.cpted-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;border-radius:16px;border:1.5px solid rgba(180,83,9,.25);background:rgba(255,251,235,.82);cursor:pointer;font-family:'Noto Sans KR',sans-serif;box-shadow:0 4px 14px rgba(180,83,9,.08);touch-action:manipulation;transition:all .2s;}
+.cpted-btn:active{transform:scale(.985);background:#fef3c7;}
+.cpted-left{display:flex;align-items:center;gap:10px;text-align:left;}
+.cpted-ico{width:36px;height:36px;border-radius:12px;background:#f59e0b1f;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.cpted-title{font-size:13px;font-weight:800;color:#92400e;line-height:1.2;}
+.cpted-desc{font-size:10px;color:#92400e99;margin-top:3px;}
+.cpted-arr{font-size:18px;color:#92400e;font-weight:900;}
 
 /* MAP SCREEN */
 #map-screen{position:fixed;inset:0;display:none;flex-direction:column;}
@@ -56,6 +64,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 .group-tag.child{background:#d1fae5;color:#065f46;}
 .group-tag.youth{background:#fce7f3;color:#9d174d;}
 .group-tag.elder{background:#ffedd5;color:#9a3412;}
+.group-tag.cpted{background:#fef3c7;color:#92400e;}
 .topbar-loc{font-size:12px;color:var(--gray);}
 
 /* BOTTOM SHEET */
@@ -162,7 +171,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
 <div id="intro">
   <div class="intro-content">
     <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.8</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.9</div>
     <div class="app-name">Safe<span>Walk</span></div>
     <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
     <div class="section-lbl">나는 누구인가요?</div>
@@ -184,6 +193,19 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans
       </div>
     </div>
     <button class="start-btn" id="startBtn" onclick="start()">📍 내 주변 안전지도 보기</button>
+
+    <div class="cpted-entry">
+      <button type="button" class="cpted-btn" onclick="startCpted()">
+        <div class="cpted-left">
+          <div class="cpted-ico">🏗</div>
+          <div>
+            <div class="cpted-title">범죄예방환경설계 지도</div>
+            <div class="cpted-desc">CPTED 구역만 따로 확인하기</div>
+          </div>
+        </div>
+        <div class="cpted-arr">›</div>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -296,9 +318,10 @@ const WMS_LAYER = {
 };
 
 const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children','cpted'], special:'child_house'},
-  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','child_house','cctv'], wms:['women','cpted'], special:null},
-  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police','cctv'],        wms:['elder_c','cpted'],         special:null},
+  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children'], special:'child_house'},
+  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','child_house','cctv'], wms:['women'], special:null},
+  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police','cctv'],        wms:['elder_c'], special:null},
+  cpted: {label:'CPTED', color:'#b45309', emoji:'🏗',  xml:[],                          wms:['cpted'], special:null},
 };
 
 /* ── 상태 ── */
@@ -316,6 +339,17 @@ function pick(el){
 }
 
 function start(){
+  if(!grp) return;
+  document.getElementById('intro').classList.add('out');
+  document.getElementById('map-screen').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+  initMap();
+}
+
+function startCpted(){
+  grp='cpted';
+  document.querySelectorAll('.age-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('startBtn').classList.remove('on');
   document.getElementById('intro').classList.add('out');
   document.getElementById('map-screen').classList.add('show');
   document.getElementById('sheet').classList.add('show');
@@ -387,7 +421,7 @@ function buildChips(){
 
   g.wms.forEach(key=>{
     const m=WMS_LAYER[key];
-    const defaultOn=key!=='cpted'&&key!=='cctv';
+    const defaultOn = key === 'cpted' ? grp === 'cpted' : key !== 'cctv';
     chipOn['w_'+key]=defaultOn;
 
     const row=document.createElement('div');
@@ -962,6 +996,7 @@ function updateStats(){
     </div>`);
   });
 
+  bar.style.display=items.length?'flex':'none';
   bar.innerHTML=items.join('');
 }
 
