@@ -1,1012 +1,580 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SafeWalk · 내 주변 안전지도</title>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>데이터와 AI 윤리</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Pen+Script&display=swap">
 <style>
+/* Layout: 강의 판서 노트 — 질문 → 흐름도 → 이유 4가지(사례가 근거) → 기획할 때의 질문 → 윤리기준 → 부록(해커톤 적용). 형광펜·손글씨는 판서 역할로만 */
 :root{
-  --bg:#f0f4fa; --white:#ffffff; --navy:#1a2540; --blue:#2563eb;
-  --cyan:#0891b2; --green:#059669; --orange:#ea580c; --pink:#db2777;
-  --gray:#64748b; --gray2:#e2e8f0; --card:rgba(255,255,255,0.92);
+  --paper:#F4F6FA; --surface:#FFFFFF; --ink:#16213A; --muted:#566074; --line:#D8DEE8;
+  --accent:#2340A8; --accent-soft:#E7ECFA; --mark-bg:#FFE14D;
+  --warn:#A9401C; --warn-soft:#FBEDE6; --ok:#1C7149; --ok-soft:#E3F3EA;
+  --pen:#2340A8; --dot-yes:#2340A8; --dot-no:#C9D0DC;
+  --f-display:"Gothic A1","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-pen:"Nanum Pen Script","Apple SD Gothic Neo",cursive;
+  --base:16px;
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--navy);}
-
-/* INTRO */
-#intro{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#e8f0fe 0%,#f0f9ff 50%,#fef3c7 100%);transition:opacity .5s,transform .5s;}
-#intro.out{opacity:0;transform:scale(1.05);pointer-events:none;}
-.intro-content{display:flex;flex-direction:column;align-items:center;padding:0 28px;width:100%;max-width:420px;animation:fadeup .7s ease both;}
-@keyframes fadeup{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);border-radius:100px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.08em;margin-bottom:28px;}
-.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:blink 1.4s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
-.app-name{font-size:48px;font-weight:900;letter-spacing:-.03em;color:var(--navy);margin-bottom:6px;}
-.app-name span{color:var(--blue);}
-.app-sub{font-size:14px;color:var(--gray);margin-bottom:44px;}
-.section-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--gray);text-transform:uppercase;margin-bottom:14px;align-self:flex-start;}
-.age-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:24px;}
-.age-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 8px;border-radius:18px;border:2px solid var(--gray2);background:var(--white);cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
-.age-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1);}
-.age-card.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.15);}
-.age-card.selected[data-group="child"]{border-color:var(--green);}
-.age-card.selected[data-group="youth"]{border-color:var(--pink);}
-.age-card.selected[data-group="elder"]{border-color:var(--orange);}
-.age-icon{font-size:30px;}
-.age-name{font-size:13px;font-weight:700;color:var(--navy);}
-.age-desc{font-size:10px;color:var(--gray);text-align:center;line-height:1.4;}
-.start-btn{width:100%;padding:16px;border-radius:14px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;opacity:.35;pointer-events:none;font-family:'Noto Sans KR',sans-serif;}
-.start-btn.on{opacity:1;pointer-events:auto;}
-.start-btn.on:hover{background:#1d4ed8;transform:translateY(-1px);}
-.cpted-entry{width:100%;margin-top:12px;padding-top:14px;border-top:1px solid rgba(100,116,139,.18);}
-.cpted-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;border-radius:16px;border:1.5px solid rgba(180,83,9,.25);background:rgba(255,251,235,.82);cursor:pointer;font-family:'Noto Sans KR',sans-serif;box-shadow:0 4px 14px rgba(180,83,9,.08);touch-action:manipulation;transition:all .2s;}
-.cpted-btn:active{transform:scale(.985);background:#fef3c7;}
-.cpted-left{display:flex;align-items:center;gap:10px;text-align:left;}
-.cpted-ico{width:36px;height:36px;border-radius:12px;background:#f59e0b1f;display:flex;align-items:center;justify-content:center;font-size:20px;}
-.cpted-title{font-size:13px;font-weight:800;color:#92400e;line-height:1.2;}
-.cpted-desc{font-size:10px;color:#92400e99;margin-top:3px;}
-.cpted-arr{font-size:18px;color:#92400e;font-weight:900;}
-
-/* MAP SCREEN */
-#map-screen{position:fixed;inset:0;display:none;flex-direction:column;}
-#map-screen.show{display:flex;}
-#map{flex:1;width:100%;min-height:0;}
-
-.topbar{position:absolute;top:0;left:0;right:0;z-index:9999;padding:12px 14px 0;display:flex;gap:8px;align-items:center;}
-.icon-btn{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:17px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s;touch-action:manipulation;}
-.icon-btn:active{background:#dbeafe;}
-.topbar-info{flex:1;background:var(--card);border:1px solid var(--gray2);border-radius:13px;padding:8px 13px;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;}
-.group-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
-.group-tag.child{background:#d1fae5;color:#065f46;}
-.group-tag.youth{background:#fce7f3;color:#9d174d;}
-.group-tag.elder{background:#ffedd5;color:#9a3412;}
-.group-tag.cpted{background:#fef3c7;color:#92400e;}
-.topbar-loc{font-size:12px;color:var(--gray);}
-
-/* BOTTOM SHEET */
-#sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:800;
-  background:#fff;
-  border-radius:20px 20px 0 0;
-  box-shadow:0 -4px 24px rgba(0,0,0,.12);
-  transform:translateY(calc(100% - 56px));
-  transition:transform .3s cubic-bezier(.4,0,.2,1);
-  display:none;
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1424; --surface:#161D31; --ink:#E7EBF4; --muted:#9BA5B9; --line:#2A3350;
+    --accent:#93AAFF; --accent-soft:#1D2848; --mark-bg:rgba(232,201,58,.32);
+    --warn:#F09A76; --warn-soft:#3A2219; --ok:#6CD3A0; --ok-soft:#16322A; --pen:#B9C8FF;
+    --dot-yes:#93AAFF; --dot-no:#38425E;
+    color-scheme:dark;
+  }
 }
-#sheet.show{display:block;}
-#sheet.open{transform:translateY(0);}
-.sheet-handle-wrap{
-  display:flex;flex-direction:column;align-items:center;
-  touch-action:none;
-  padding:10px 0 8px;cursor:grab;user-select:none;
+:root[data-theme="dark"]{
+  --paper:#0F1424; --surface:#161D31; --ink:#E7EBF4; --muted:#9BA5B9; --line:#2A3350;
+  --accent:#93AAFF; --accent-soft:#1D2848; --mark-bg:rgba(232,201,58,.32);
+  --warn:#F09A76; --warn-soft:#3A2219; --ok:#6CD3A0; --ok-soft:#16322A; --pen:#B9C8FF;
+  --dot-yes:#93AAFF; --dot-no:#38425E;
+  color-scheme:dark;
 }
-.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--gray2);margin-bottom:6px;}
-.sheet-label{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.08em;}
-.sheet-body{padding:0 14px 28px;touch-action:auto;}
-.chips{display:flex;flex-direction:column;gap:0;}
-.chip-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--gray2);}
-.chip-row:last-child{border-bottom:none;}
-.chip-left{display:flex;align-items:center;gap:10px;}
-.chip-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.chip-label{font-size:13px;font-weight:600;color:var(--navy);}
-.chip-sub{font-size:11px;color:var(--gray);margin-top:1px;}
+html{font-size:var(--base);scroll-behavior:smooth}
+html.big{--base:20px}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4{font-family:var(--f-display);line-height:1.3;text-wrap:balance;margin:0}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+.hl{background:linear-gradient(transparent 52%,var(--mark-bg) 52%);padding:0 .1em}
+.pen{font-family:var(--f-pen);color:var(--pen);font-size:1.55rem;line-height:1.25}
+.eyebrow{font-size:.8rem;letter-spacing:.06em;color:var(--muted);font-weight:600}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 12px;font-size:.85rem;font-weight:500}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
 
-/* 모바일 안정형 토글 스위치 */
-.toggle{
-  position:relative;
-  width:44px;
-  height:26px;
-  flex-shrink:0;
-  border:0;
-  padding:0;
-  background:transparent;
-  cursor:pointer;
-  touch-action:manipulation;
-  -webkit-user-select:none;
-  user-select:none;
+/* header */
+header.top{padding-block:40px 28px;display:grid;gap:14px}
+header.top h1{font-size:clamp(1.9rem,5vw,2.7rem);font-weight:800;letter-spacing:-.01em}
+header.top .lead{font-size:1.08rem;color:var(--muted);max-width:62ch}
+
+/* nav */
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:6px;align-items:center;padding-block:10px;overflow-x:auto;scrollbar-width:none}
+nav.toc a{flex:none;text-decoration:none;color:var(--ink);font-size:.9rem;font-weight:500;padding:5px 12px;border-radius:999px;border:1px solid transparent}
+nav.toc a:hover{border-color:var(--line);background:var(--surface)}
+nav.toc .sp{flex:1}
+
+section{padding-block:44px;border-bottom:1px solid var(--line);scroll-margin-top:60px}
+section > .wrap{display:grid;gap:20px}
+.sec-head{display:grid;gap:6px}
+.sec-head h2{font-size:clamp(1.45rem,3.6vw,1.9rem);font-weight:800}
+.sec-head p{color:var(--muted);max-width:64ch}
+.body-text{max-width:66ch;display:grid;gap:10px}
+
+/* flow diagram */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;gap:8px}
+.node{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:4px;align-content:start;text-decoration:none;color:var(--ink);min-width:0}
+a.node:hover{border-color:var(--accent)}
+.node b{font-family:var(--f-display);font-size:1.05rem}
+.node span{font-size:.86rem;color:var(--muted)}
+.node .rs{font-size:.74rem;font-weight:700;color:var(--accent)}
+.arrow{align-self:center;color:var(--accent);font-weight:700;font-size:1.3rem}
+.loop{grid-column:1 / -1;border:1.5px dashed var(--accent);border-top:0;border-radius:0 0 14px 14px;padding:6px 14px 8px;text-align:center;font-size:.9rem;color:var(--accent);font-weight:500}
+
+/* reasons */
+.reason{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 20px;padding-block:8px}
+.reason + .reason{border-top:1px solid var(--line);padding-top:32px}
+.reason .num{font-family:var(--f-display);font-weight:800;font-size:3rem;line-height:1;color:var(--accent);grid-row:span 6}
+.reason h3{font-size:clamp(1.25rem,3vw,1.5rem);font-weight:800}
+.reason .claim{font-size:1.05rem;max-width:64ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:.76rem;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:2px 8px}
+.cases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px}
+.cases.one{grid-template-columns:minmax(0,1fr)}
+.case{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start;min-width:0}
+.case .yr{font-family:var(--f-display);font-weight:700;color:var(--muted);font-size:.82rem;font-variant-numeric:tabular-nums}
+.case h4{font-size:1.05rem;font-weight:800}
+.case p{font-size:.94rem}
+.case .why{font-size:.9rem;background:var(--warn-soft);border-radius:8px;padding:9px 12px}
+.case .why b{color:var(--warn)}
+.think{background:var(--accent-soft);border-radius:10px;padding:12px 16px;display:grid;gap:4px;margin-top:6px}
+.think .lbl{font-size:.75rem;font-weight:700;letter-spacing:.05em;color:var(--accent)}
+.think ul{margin:0;padding-left:1.2em;display:grid;gap:2px;font-size:.95rem}
+
+/* sampling demo */
+.demo{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:14px;margin-top:6px}
+.demo-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.demo-head h4{font-size:1.05rem;font-weight:800}
+.demo-head small{color:var(--muted);font-size:.8rem}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.grades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grade{display:grid;gap:6px;min-width:0}
+.grade .gl{font-size:.82rem;font-weight:600;color:var(--muted)}
+.dots{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.dot{aspect-ratio:1;border-radius:50%;background:var(--dot-no);opacity:.28;max-width:100%}
+.dot.y{background:var(--dot-yes)}
+.dot.s{opacity:1}
+.result{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.result div{border-radius:8px;padding:10px 14px;background:var(--paper);display:grid;gap:2px}
+.result span{font-size:.8rem;color:var(--muted)}
+.result b{font-family:var(--f-display);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.result .gap{color:var(--warn)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* plan stages */
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 16px;font-size:.92rem;font-weight:500}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.stages{display:grid;gap:14px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 18px}
+.stage .no{font-family:var(--f-display);font-weight:800;font-size:2.2rem;line-height:1;color:var(--accent);grid-row:span 4}
+.stage h3{font-size:1.15rem;font-weight:800}
+.stage .q{font-size:1.02rem;font-weight:500}
+.ex{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ex > div{border-radius:8px;padding:12px 14px;font-size:.95rem;min-width:0}
+.ex .risk{background:var(--warn-soft)}
+.ex .fix{background:var(--ok-soft)}
+.ex .lbl{display:block;font-size:.75rem;font-weight:700;letter-spacing:.05em;margin-bottom:2px}
+.ex .risk .lbl{color:var(--warn)}
+.ex .fix .lbl{color:var(--ok)}
+
+/* standard */
+.principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.principles div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:var(--f-display);font-weight:700;text-align:center}
+.req{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.req div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.88rem;text-align:center;display:grid;gap:2px}
+.req div small{font-size:.72rem;color:var(--muted)}
+.req div.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.req div.on small{color:var(--accent)}
+
+/* appendix */
+.appendix{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:grid;gap:18px}
+.check-list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.check-list li{border-bottom:1px solid var(--line)}
+.check-list li:last-child{border-bottom:0}
+.check-list label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;padding:12px 16px;cursor:pointer}
+.check-list input{width:20px;height:20px;margin-top:4px;accent-color:var(--ok);grid-row:span 2}
+.check-list .t{font-weight:600}
+.check-list .d{font-size:.86rem;color:var(--muted)}
+.check-list input:checked ~ .t{color:var(--ok)}
+.privacy{font-size:.82rem;color:var(--muted)}
+.blk{display:grid;gap:6px}
+.blk h4{font-size:1rem;font-weight:700;color:var(--accent)}
+.blk p,.blk li{font-size:.95rem}
+.blk ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.stamp{font-size:.78rem;font-weight:700;color:var(--warn);border:1.5px solid var(--warn);border-radius:6px;padding:3px 10px;transform:rotate(-2deg);flex:none}
+.sample-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:600px;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{background:var(--paper);font-weight:600;font-size:.82rem;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+
+.src{display:grid;gap:8px;padding-left:1.2em;margin:0;font-size:.92rem}
+footer{padding-block:28px 48px;color:var(--muted);font-size:.85rem}
+
+@media (max-width:700px){
+  .flow{grid-template-columns:minmax(0,1fr)}
+  .arrow{justify-self:center;transform:rotate(90deg)}
+  .loop{border:1.5px dashed var(--accent);border-radius:12px}
+  .cases{grid-template-columns:1fr}
+  .reason{grid-template-columns:1fr}
+  .reason .num{grid-row:auto;font-size:2.2rem}
+  .grades{grid-template-columns:1fr}
+  .dots{grid-template-columns:repeat(20,1fr);gap:2px}
+  .ex{grid-template-columns:1fr}
+  .principles{grid-template-columns:1fr}
+  .req{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stage{grid-template-columns:1fr}
+  .stage .no{grid-row:auto;font-size:1.8rem}
+  .appendix{padding:16px}
 }
-.toggle-track{
-  position:absolute;
-  inset:0;
-  border-radius:13px;
-  background:var(--gray2);
-  transition:background .2s;
-  pointer-events:none;
-}
-.toggle-thumb{
-  position:absolute;
-  top:3px;
-  left:3px;
-  width:20px;
-  height:20px;
-  border-radius:50%;
-  background:#fff;
-  box-shadow:0 1px 4px rgba(0,0,0,.2);
-  transition:transform .2s;
-  pointer-events:none;
-}
-.toggle.on .toggle-track{background:var(--blue);}
-.toggle.on .toggle-thumb{transform:translateX(18px);}
-
-.stats-bar{display:flex;gap:8px;overflow-x:auto;padding-top:10px;border-top:1px solid var(--gray2);scrollbar-width:none;}
-.stats-bar::-webkit-scrollbar{display:none;}
-.stat-item{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--gray2);border-radius:10px;padding:6px 10px;}
-.stat-emoji{font-size:14px;}
-.stat-info{display:flex;flex-direction:column;}
-.stat-num{font-size:14px;font-weight:900;line-height:1;}
-.stat-lbl{font-size:9px;color:var(--gray);font-weight:500;white-space:nowrap;}
-
-/* POPUP */
-.safepopup .leaflet-popup-content-wrapper{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);color:var(--navy);}
-.safepopup .leaflet-popup-content{margin:12px 15px;}
-.safepopup .leaflet-popup-tip{background:#fff;}
-.safepopup .leaflet-popup-close-button{color:var(--gray);}
-.ptitle{font-size:14px;font-weight:700;margin-bottom:5px;}
-.prow{font-size:12px;color:var(--gray);margin-top:3px;display:flex;align-items:center;gap:5px;}
-.pbadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-bottom:7px;}
-
-/* LOADING */
-#loading{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s;}
-#loading.hide{opacity:0;pointer-events:none;}
-.spin{width:44px;height:44px;border:3px solid var(--gray2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.load-txt{font-size:13px;color:var(--gray);font-weight:500;}
-#map-spinner{position:fixed;bottom:80px;right:14px;z-index:600;background:var(--card);border:1px solid var(--gray2);border-radius:50%;width:36px;height:36px;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.1);}
-#map-spinner.show{display:flex;}
-#map-spinner .mspin{width:18px;height:18px;border:2px solid var(--gray2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
-.leaflet-container{touch-action:pan-x pan-y !important;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
 </style>
-</head>
-<body>
 
-<div id="loading">
-  <div class="spin"></div>
-  <div class="load-txt" id="loadTxt">불러오는 중...</div>
-</div>
+<header class="top wrap">
+  <span class="eyebrow">제8회 SW·AI교육 창의융합 해커톤 · 예선 사전교육 참고 자료</span>
+  <h1>데이터와 AI, <span class="hl">왜 윤리부터</span> 생각해야 할까요?</h1>
+  <p class="lead">데이터는 숫자이고 AI는 프로그램인데, 왜 윤리를 이야기할까요? 데이터를 모으고 AI 모델을 기획하는 순간부터 윤리적 판단이 시작되는 이유를 사례와 함께 살펴봅니다.</p>
+</header>
 
-<div id="intro">
-  <div class="intro-content">
-    <div class="badge"><span class="badge-dot"></span>생활안전지도 기반</div>
-    <div style="font-size:10px;color:var(--gray);margin-top:-20px;margin-bottom:28px;letter-spacing:.05em;">v.1.4.9</div>
-    <div class="app-name">Safe<span>Walk</span></div>
-    <div class="app-sub">내 주변 안전 인프라, 미리 확인하세요</div>
-    <div class="section-lbl">나는 누구인가요?</div>
-    <div class="age-cards">
-      <div class="age-card" data-group="child" onclick="pick(this)">
-        <div class="age-icon">🧒</div>
-        <div class="age-name">아동</div>
-        <div class="age-desc">초등학생<br>이하</div>
-      </div>
-      <div class="age-card" data-group="youth" onclick="pick(this)">
-        <div class="age-icon">🚶‍♀️</div>
-        <div class="age-name">청소년</div>
-        <div class="age-desc">중·고등<br>학생</div>
-      </div>
-      <div class="age-card" data-group="elder" onclick="pick(this)">
-        <div class="age-icon">👴</div>
-        <div class="age-name">노인</div>
-        <div class="age-desc">65세<br>이상</div>
-      </div>
+<nav class="toc" aria-label="목차">
+  <div class="wrap">
+    <a href="#intro">들어가며</a>
+    <a href="#why">윤리가 필요한 이유 4가지</a>
+    <a href="#plan">기획할 때 던질 질문</a>
+    <a href="#standard">윤리기준</a>
+    <a href="#apply">부록: 해커톤 적용</a>
+    <a href="#sources">출처</a>
+    <span class="sp"></span>
+    <button class="btn" id="bigBtn" type="button" aria-pressed="false">글자 크게</button>
+  </div>
+</nav>
+
+<main>
+<section id="intro">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">들어가며</span>
+      <h2>AI는 사람에게서 시작해 사람에게 돌아와요</h2>
+      <p>AI가 만들어지는 흐름을 보면, 처음과 끝에 모두 사람이 있어요. 각 칸을 누르면 관련된 이유로 이동해요.</p>
     </div>
-    <button class="start-btn" id="startBtn" onclick="start()">📍 내 주변 안전지도 보기</button>
+    <div class="flow" role="list">
+      <div class="node" role="listitem"><b>사람·사회</b><span>우리가 살아가며 남기는 행동과 기록</span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <a class="node" role="listitem" href="#r1"><span class="rs">이유 1 · 2</span><b>데이터</b><span>그 기록 중 일부를 모은 것</span></a>
+      <span class="arrow" aria-hidden="true">→</span>
+      <a class="node" role="listitem" href="#r3"><span class="rs">이유 3</span><b>AI 모델</b><span>우리가 정한 목표에 맞춰 데이터의 패턴을 배운 것</span></a>
+      <span class="arrow" aria-hidden="true">→</span>
+      <a class="node" role="listitem" href="#r4"><span class="rs">이유 4</span><b>판단·서비스</b><span>배운 패턴으로 다시 사람을 판단하고 안내하는 것</span></a>
+      <div class="loop">↺ AI의 판단은 다시 사람의 삶에 영향을 주고, 그 결과가 새로운 데이터가 돼요</div>
+    </div>
+    <div class="body-text">
+      <p>그래서 데이터를 다룰 때와 AI 모델을 기획할 때 내리는 선택 하나하나가 <span class="hl">결국 누군가의 삶에 닿아요.</span> 무엇을 모을지, 무엇을 예측할지, 결과를 어떻게 쓸지 정하는 일은 기술 선택이면서 동시에 가치 선택이에요.</p>
+    </div>
+    <p class="pen">질문 하나 — "데이터는 객관적이니까 AI도 공정하다." 맞을까요?</p>
+  </div>
+</section>
 
-    <div class="cpted-entry">
-      <button type="button" class="cpted-btn" onclick="startCpted()">
-        <div class="cpted-left">
-          <div class="cpted-ico">🏗</div>
-          <div>
-            <div class="cpted-title">범죄예방환경설계 지도</div>
-            <div class="cpted-desc">CPTED 구역만 따로 확인하기</div>
-          </div>
+<section id="why">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">윤리가 필요한 이유 4가지</span>
+      <h2>데이터와 AI가 가진 네 가지 성질</h2>
+      <p>아래 사례는 모두 실제로 보도되거나 연구로 발표된 일이에요. 파란 꼬리표는 「국가 인공지능 윤리기준」의 관련 핵심요건이에요.</p>
+    </div>
+
+    <!-- 이유 1 -->
+    <article class="reason" id="r1">
+      <div class="num" aria-hidden="true">1</div>
+      <h3>데이터 뒤에는 사람이 있어요</h3>
+      <p class="claim">데이터 한 줄 한 줄은 누군가의 대화, 위치, 건강, 행동 기록이에요. 한 사람의 기록은 사소해 보여도 <span class="hl">모이면 그 사람을, 때로는 집단의 비밀을 드러낼 수 있어요.</span> 또 처음에 밝힌 목적과 다르게 쓰면 동의한 사람을 속이는 일이 돼요.</p>
+      <div class="tags"><span class="tag">프라이버시 보호</span><span class="tag">데이터 관리</span><span class="tag">인권 보장</span></div>
+      <div class="cases">
+        <div class="case">
+          <span class="yr">2020~2021 · 대한민국</span>
+          <h4>21일 만에 멈춘 챗봇 '이루다'</h4>
+          <p>다른 앱에서 모은 이용자 대화를, 이용자가 예상하지 못한 챗봇 학습에 사용했어요. 2020년 12월 22일 출시 후 21일 만에 서비스가 중단됐어요.</p>
+          <p class="why"><b>결과</b> · 2021년 4월 개인정보보호위원회가 개발사에 과징금·과태료 총 1억 330만 원을 부과했어요. AI 기업의 개인정보 무단 처리에 대한 첫 제재 사례로 알려져 있어요.</p>
         </div>
-        <div class="cpted-arr">›</div>
-      </button>
+        <div class="case">
+          <span class="yr">2018 · 운동 기록 앱</span>
+          <h4>운동 지도에 드러난 군사 기지</h4>
+          <p>운동 앱 스트라바가 이용자들의 달리기·자전거 경로를 모아 히트맵으로 공개했어요. 이 지도에서 외딴 지역 군사 기지의 위치와 내부 이동 경로가 드러났어요.</p>
+          <p class="why"><b>교훈</b> · 개인 이름이 없는 데이터라도, 많이 모이면 민감한 정보가 될 수 있어요.</p>
+        </div>
+      </div>
+      <div class="think"><span class="lbl">데이터를 다룰 때 생각할 점</span>
+        <ul><li>이 데이터는 누구의 기록이고, 그 사람은 이렇게 쓰이는 것에 동의했나요?</li><li>꼭 필요한 항목만 모으고 있나요?</li><li>결과를 지도나 그래프로 공개할 때 드러나는 것은 없나요?</li></ul>
+      </div>
+    </article>
+
+    <!-- 이유 2 -->
+    <article class="reason" id="r2">
+      <div class="num" aria-hidden="true">2</div>
+      <h3>데이터는 세상의 일부만 담고 있어요</h3>
+      <p class="claim">데이터는 세상을 그대로 비추는 거울이 아니에요. <span class="hl">누가 기록되었고 누가 빠졌는지</span>에 따라 결론이 달라져요. AI는 데이터에 담긴 치우침을 구별하지 못하고 그대로 배워요.</p>
+      <div class="tags"><span class="tag">다양성 존중</span><span class="tag">데이터 관리</span></div>
+      <div class="cases one">
+        <div class="case">
+          <span class="yr">2018 보도 · 미국</span>
+          <h4>여성 지원자에게 낮은 점수를 준 AI 채용 도구</h4>
+          <p>아마존은 과거 10년간 받은 지원서로 AI 서류 평가 도구를 개발했어요. 그런데 지원자 대부분이 남성이었고, 그 결과 '여성' 관련 단어가 들어간 지원서에 낮은 점수를 줬어요. 회사는 결국 이 도구를 쓰지 않기로 했어요.</p>
+          <p class="why"><b>교훈</b> · 과거 데이터에 담긴 치우침을 AI가 그대로 배우면, 과거의 불공정이 미래에도 반복돼요.</p>
+        </div>
+      </div>
+      <div class="demo" id="demo">
+        <div class="demo-head">
+          <h4>직접 해 보기: 누구를 조사하느냐에 따라 달라지는 결론</h4>
+          <small>가상 데이터 · 전교생 300명</small>
+        </div>
+        <p style="font-size:.95rem">"매점을 자주 이용한다"고 답한 학생 비율을 알고 싶어요. 실제 전교생 비율은 50%예요. 조사 대상을 바꿔 보세요.</p>
+        <div class="opts" role="group" aria-label="조사 대상">
+          <button class="btn" type="button" data-s="g1" aria-pressed="false">1학년 한 반만 (25명)</button>
+          <button class="btn" type="button" data-s="g3" aria-pressed="false">3학년 한 반만 (25명)</button>
+          <button class="btn" type="button" data-s="mix" aria-pressed="true">학년마다 한 반씩 (75명)</button>
+          <button class="btn" type="button" data-s="all" aria-pressed="false">전교생 (300명)</button>
+        </div>
+        <div class="grades" id="grades" aria-hidden="true"></div>
+        <div class="legend"><span><i style="background:var(--dot-yes)"></i>자주 이용</span><span><i style="background:var(--dot-no)"></i>자주 이용하지 않음</span><span>흐린 점 = 조사하지 않은 학생</span></div>
+        <div class="result" aria-live="polite">
+          <div><span>조사 결과</span><b id="est">–</b></div>
+          <div><span>실제 전교생</span><b>50%</b></div>
+        </div>
+      </div>
+      <div class="think"><span class="lbl">데이터를 다룰 때 생각할 점</span>
+        <ul><li>이 데이터에 기록되지 않은 사람은 누구인가요?</li><li>특정 지역·시간·집단에 데이터가 몰려 있지 않나요?</li><li>과거 데이터에 담긴 불공정을 그대로 배우고 있지 않나요?</li></ul>
+      </div>
+    </article>
+
+    <!-- 이유 3 -->
+    <article class="reason" id="r3">
+      <div class="num" aria-hidden="true">3</div>
+      <h3>무엇을 예측할지 정하는 것도 선택이에요</h3>
+      <p class="claim">AI 모델을 기획할 때 가장 먼저 정하는 것은 '무엇을 맞힐 것인가'예요. 알고 싶은 것을 직접 측정하기 어려우면 비슷한 다른 값으로 대신하는데, <span class="hl">그 대신한 값이 엉뚱하면 모델이 정확해도 결과는 불공정해요.</span></p>
+      <div class="tags"><span class="tag">공공성</span><span class="tag">다양성 존중</span><span class="tag">투명성</span></div>
+      <div class="cases">
+        <div class="case">
+          <span class="yr">2019 · 미국 (학술지 Science 발표)</span>
+          <h4>'의료비'로 '아픈 정도'를 대신한 알고리즘</h4>
+          <p>추가 관리가 필요한 환자를 고르는 알고리즘이 건강 상태 대신 그동안 쓴 의료비를 예측 목표로 삼았어요.</p>
+          <p class="why"><b>결과</b> · 의료 서비스를 덜 이용해 온 흑인 환자는 같은 점수를 받아도 실제로는 더 아픈 경우가 많았어요. 그래서 도움이 필요한데도 덜 선정됐어요.</p>
+        </div>
+        <div class="case">
+          <span class="yr">2020 · 영국</span>
+          <h4>시험 대신 알고리즘이 매긴 성적</h4>
+          <p>코로나19로 A레벨 시험이 취소되자 알고리즘으로 성적을 산출했어요. 학교의 과거 성적을 크게 반영한 결과, 교사가 예상한 성적의 40% 가까이가 낮아졌어요.</p>
+          <p class="why"><b>결과</b> · 성적이 낮았던 학교의 우수한 학생은 본인 실력과 관계없이 불리해졌어요. 비판이 커지자 며칠 만에 교사 평가 성적으로 바꿨어요.</p>
+        </div>
+      </div>
+      <div class="think"><span class="lbl">모델링을 기획할 때 생각할 점</span>
+        <ul><li>우리가 예측하는 값이 정말 알고 싶은 것을 나타내나요?</li><li>개인을 판단하면서 그 사람이 속한 집단의 평균을 쓰고 있지 않나요?</li><li>모델이 '정확하다'는 것과 '공정하다'는 것을 구분해서 확인하나요?</li></ul>
+      </div>
+    </article>
+
+    <!-- 이유 4 -->
+    <article class="reason" id="r4">
+      <div class="num" aria-hidden="true">4</div>
+      <h3>AI의 판단은 빠르고 넓게 반복돼요</h3>
+      <p class="claim">사람 한 명의 실수는 한 번으로 끝나지만, AI는 같은 방식의 판단을 많은 사람에게 자동으로 반복해요. 게다가 <span class="hl">왜 그런 결과가 나왔는지 설명하기 어려운 경우</span>가 많아요. 그래서 문제가 생기기 전에 책임과 안전 장치를 설계해야 해요.</p>
+      <div class="tags"><span class="tag">안전성</span><span class="tag">책임성</span><span class="tag">침해 금지</span><span class="tag">투명성</span></div>
+      <div class="cases one">
+        <div class="case">
+          <span class="yr">2018 · 미국</span>
+          <h4>보행자를 감지하고도 멈추지 못한 자율주행 시험차</h4>
+          <p>애리조나에서 자율주행 시험차가 길을 건너던 보행자를 치어 숨지게 했어요. 미국 교통안전위원회(NTSB) 조사에 따르면, 시스템은 보행자를 감지했지만 무엇인지 제대로 분류하지 못했어요. 횡단보도가 아닌 곳을 건너는 보행자는 설계에서 고려하지 않았어요.</p>
+          <p class="why"><b>교훈</b> · 비상 제동은 안전요원에게 맡겨져 있었는데, 안전요원이 도로를 제대로 보고 있지 않았어요. AI가 놓치는 상황을 미리 생각하고, 누가 어떻게 멈출지 정해 두어야 해요.</p>
+        </div>
+      </div>
+      <div class="think"><span class="lbl">모델링을 기획할 때 생각할 점</span>
+        <ul><li>AI가 틀리면 누가 피해를 보나요? 놓치는 오류와 잘못 알리는 오류 중 무엇이 더 위험한가요?</li><li>결과가 왜 그렇게 나왔는지 설명할 수 있나요?</li><li>최종 판단과 책임은 누가 지나요?</li></ul>
+      </div>
+    </article>
+
+    <p class="pen">정리 — 데이터는 저절로 객관적이지 않고, AI는 저절로 공정하지 않아요. 만드는 사람의 선택이 결과를 정해요.</p>
+  </div>
+</section>
+
+<section id="plan">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">기획할 때 던질 질문</span>
+      <h2>왜 '나중에'가 아니라 '기획할 때'일까요?</h2>
+      <p>'이루다'는 출시 21일 만에 멈췄고, 영국의 성적 알고리즘은 며칠 만에 철회됐어요. 하지만 그 사이에 이미 많은 사람이 피해를 입었어요. 다 만든 뒤에 고치면 비용도 크고 피해도 되돌리기 어려워요. 그래서 프로젝트 단계마다 미리 질문해야 해요.</p>
+    </div>
+    <p style="font-size:.95rem;color:var(--muted)">데이터 영역을 골라 예시를 확인해 보세요. 예시는 이해를 돕기 위해 만든 가상의 상황이에요.</p>
+    <div class="tabs" role="tablist" aria-label="데이터 영역">
+      <button role="tab" id="tab-env" data-d="env" aria-selected="true" type="button">환경·기후</button>
+      <button role="tab" id="tab-traffic" data-d="traffic" aria-selected="false" type="button">교통·안전</button>
+      <button role="tab" id="tab-welfare" data-d="welfare" aria-selected="false" type="button">복지·건강</button>
+      <button role="tab" id="tab-school" data-d="school" aria-selected="false" type="button">학교·교육</button>
+    </div>
+    <div class="stages" id="stages"></div>
+  </div>
+</section>
+
+<section id="standard">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">윤리기준</span>
+      <h2>우리나라가 정한 AI 윤리의 기준</h2>
+      <p>과학기술정보통신부는 2020년 12월 「국가 인공지능 윤리기준」을 발표했어요. AI를 개발하고 활용하는 모든 사람이 지켜야 할 3대 기본원칙과 10대 핵심요건을 담고 있어요. 각 칸 아래에 오늘 다룬 이유 번호를 적었어요.</p>
+    </div>
+    <div class="principles"><div>인간 존엄성</div><div>사회의 공공선</div><div>기술의 합목적성</div></div>
+    <div class="req" aria-label="10대 핵심요건">
+      <div>인권 보장<small>이유 1</small></div>
+      <div class="on">프라이버시 보호<small>이유 1</small></div>
+      <div class="on">다양성 존중<small>이유 2 · 3</small></div>
+      <div class="on">침해 금지<small>이유 4</small></div>
+      <div class="on">공공성<small>이유 3</small></div>
+      <div>연대성<small>—</small></div>
+      <div class="on">데이터 관리<small>이유 1 · 2</small></div>
+      <div class="on">책임성<small>이유 4</small></div>
+      <div class="on">안전성<small>이유 4</small></div>
+      <div class="on">투명성<small>이유 3 · 4</small></div>
     </div>
   </div>
-</div>
+</section>
 
-<div id="map-screen">
-  <div id="map"></div>
-  <div id="map-spinner"><div class="mspin"></div></div>
-  <div class="topbar">
-    <div class="icon-btn" onclick="goBack()">←</div>
-    <div class="topbar-info">
-      <span class="group-tag" id="gTag"></span>
-      <span class="topbar-loc" id="locTxt">위치 확인 중...</span>
+<section id="apply">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">부록</span>
+      <h2>해커톤 예선 기획서에 적용하기</h2>
+      <p>예선 계획서 심사에 '윤리' 항목이 따로 있지는 않아요. 하지만 윤리 검토 내용은 <b>문제해결 방법의 적절성</b>과 <b>발전 가능성</b>을 설명하는 근거가 될 수 있어요.</p>
     </div>
-    <div class="icon-btn" onclick="flyHome()">📍</div>
+    <div class="appendix">
+      <div class="blk">
+        <h4>우리 팀 점검 5문항</h4>
+        <ul class="check-list" id="checkList"></ul>
+        <p class="privacy">체크 상태는 지금 쓰는 기기의 브라우저에만 저장되고, 어디에도 전송되지 않아요.</p>
+      </div>
+      <div class="blk">
+        <div class="sample-head">
+          <h4>기획서 예시 — 점심시간 매점 혼잡도 예측 알림</h4>
+          <span class="stamp">가상 예시 · 실제 팀 아님</span>
+        </div>
+        <p>윤리 점검을 맨 끝에 따로 붙이지 말고, 기획서의 각 부분에 한 줄씩 넣은 모습이에요. 형식만 참고하세요.</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>기획서 항목</th><th>계획 내용</th><th>함께 적은 윤리 고려</th></tr></thead>
+            <tbody>
+              <tr><td>문제 정의</td><td>점심시간 매점 대기 시간을 줄이기 위해 혼잡 시간을 미리 안내</td><td>휴대폰을 제출하는 학생도 볼 수 있게 앱 대신 복도 표시 장치 사용</td></tr>
+              <tr><td>데이터</td><td>입구 적외선 센서 출입 인원, 나이스 교육정보 개방 포털 급식식단정보, 공공데이터포털 기상 자료, 이용 설문</td><td>카메라 미사용, 설문에서 이름·학번 미수집, 학년별 같은 인원 조사, 공공데이터 출처 표기</td></tr>
+              <tr><td>AI 모델</td><td>요일·시간·메뉴·날씨로 10분 뒤 이용 인원을 예측하는 회귀 모델</td><td>영향이 큰 요인을 그래프로 함께 제시, 생성형 AI로 쓴 코드는 팀원이 확인 후 주석과 사용 도구 표기</td></tr>
+              <tr><td>피지컬 연동</td><td>복도 LED로 '여유 / 보통 / 혼잡' 표시</td><td>센서 값이 비정상이면 '점검 중' 표시</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</section>
 
-<div id="sheet">
-  <div class="sheet-handle-wrap" id="sheetHandle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-label">레이어 설정</div>
+<section id="sources">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">출처</span>
+      <h2>근거 자료</h2>
+    </div>
+    <ol class="src">
+      <li>과학기술정보통신부, 「사람이 중심이 되는 인공지능(AI) 윤리기준」, 2020. 12.</li>
+      <li><a href="https://m.boannews.com/html/detail.html?idx=96939" target="_blank" rel="noopener">보안뉴스, 「개인정보 남용 논란 '이루다'... 과징금 1억 330만 원 부과」</a> · <a href="https://byline.network/2021/04/29-101" target="_blank" rel="noopener">바이라인네트워크, 「AI 기업 무단 개인정보 처리 첫 제재」</a></li>
+      <li><a href="https://www.bitdefender.com/blog/hotforsecurity/secret-military-bases-exposed-soldiers-fitness-trackers/" target="_blank" rel="noopener">스트라바 히트맵 군사 기지 노출 보도 (2018. 1.)</a></li>
+      <li><a href="https://www.euronews.com/2018/10/10/amazon-scraps-secret-ai-recruiting-tool-that-showed-bias-against-women" target="_blank" rel="noopener">Reuters, 「Amazon scraps secret AI recruiting tool that showed bias against women」 (2018. 10.)</a></li>
+      <li>Obermeyer, Z. et al., 「Dissecting racial bias in an algorithm used to manage the health of populations」, Science, 2019. 10. · <a href="https://chmi.berkeley.edu/news/dissecting-racial-bias-in-an-algorithm-used-to-manage-the-health-of-populations" target="_blank" rel="noopener">요약</a></li>
+      <li><a href="https://uk.news.yahoo.com/level-results-day-top-grades-064250946.html" target="_blank" rel="noopener">영국 A레벨 성적 산출 — 「Almost 40 per cent of A-level results downgraded」</a> · <a href="https://www.expressandstar.com/uk-news/from-mutant-algorithms-to-resignations-a-timeline-of-the-exam-grading-fiasco-6023621" target="_blank" rel="noopener">경과 정리</a></li>
+      <li><a href="https://fortune.com/2019/11/06/uber-self-driving-pedestrian-killed-arizona-software-jaywalker" target="_blank" rel="noopener">우버 자율주행 시험차 사고 NTSB 조사 결과 보도 (2019. 11.)</a></li>
+      <li>경상북도교육청, 「제8회 SW·AI교육 창의융합 해커톤 대회 계획(안)」</li>
+    </ol>
   </div>
-  <div class="sheet-body">
-    <div class="chips" id="chips"></div>
-    <div class="stats-bar" id="statsBar"></div>
-  </div>
-</div>
+</section>
+</main>
+
+<footer class="wrap">제8회 SW·AI교육 창의융합 해커톤 예선 사전교육 참고 자료 · '직접 해 보기'와 단계별 예시, 기획서 예시는 이해를 돕기 위한 가상 자료예요.</footer>
 
 <script>
-/* ── Bottom Sheet ── */
-let sheetInited = false;
-
-function initSheet(){
-  if(sheetInited) return;
-  sheetInited = true;
-
-  const sheet=document.getElementById('sheet');
-  const handle=document.getElementById('sheetHandle');
-  let startY=0, startT=0, isDragging=false;
-
-  handle.addEventListener('touchstart',e=>{
-    startY=e.touches[0].clientY;
-    startT=Date.now();
-    isDragging=true;
-    sheet.style.transition='none';
-  },{passive:true});
-
-  handle.addEventListener('touchmove',e=>{
-    if(!isDragging) return;
-    const dy=e.touches[0].clientY-startY;
-    const isOpen=sheet.classList.contains('open');
-    const base=isOpen?0:sheet.offsetHeight-56;
-    const newY=Math.max(0, Math.min(sheet.offsetHeight-56, base+dy));
-    sheet.style.transform=`translateY(${newY}px)`;
-  },{passive:true});
-
-  handle.addEventListener('touchend',e=>{
-    if(!isDragging) return;
-    isDragging=false;
-    sheet.style.transition='';
-    const dy=e.changedTouches[0].clientY-startY;
-    const dt=Date.now()-startT;
-    const isOpen=sheet.classList.contains('open');
-
-    if((!isOpen && (dy<-50||(dt<300&&dy<-20)))||(isOpen&&dy>50)) {
-      sheet.classList.toggle('open');
-    }
-    sheet.style.transform='';
-  },{passive:true});
-
-  handle.addEventListener('click',()=>{
-    sheet.classList.toggle('open');
-    sheet.style.transform='';
-  });
-}
-
-/* ── 설정 ── */
-const API_KEY = 'EYQ7ZKD8-EYQ7-EYQ7-EYQ7-EYQ7ZKD8HA';
-const R_KM = 1.0;
-
-const MARKER_API = 'https://safemap.go.kr/layer/getMarkerLayerPost.json';
-const LAYER_API = {
-  bell:       {layer:'A2SM_CMMNPOI_EMGBELL', style:'A2SM_CMMNPOI_EMGBELL'},
-  police:     {layer:'A2SM_CMMNPOI2',        style:'A2SM_CmmnPoi2'},
-  child_house:{layer:'A2SM_CMMNPOI',         style:'A2SM_CMMNPOI_05'},
-  cctv:       {layer:'A2SM_CCTV_INFO',       style:'A2SM_CCTV_INFO'},
-};
-
-const WMS_API = {
-  women:    'https://safemap.go.kr/openapi2/IF_0080_WMS',
-  elder_c:  'https://safemap.go.kr/openapi2/IF_0082_WMS',
-  children: 'https://safemap.go.kr/openapi2/IF_0081_WMS',
-  cctv:     'https://safemap.go.kr/openapi2/IF_0131_WMS',
-  cpted:    'https://www.safemap.go.kr/geoserver_pos/safemap/wms',
-};
-
-const LAYER = {
-  bell:       {label:'안전비상벨',        color:'#0891b2', emoji:'🔔'},
-  police:     {label:'치안시설',          color:'#7c3aed', emoji:'🚔'},
-  child_house:{label:'아동안전지킴이집',   color:'#059669', emoji:'🏠'},
-  cpted:      {label:'범죄예방환경설계',   color:'#b45309', emoji:'🏗'},
-  cctv:       {label:'CCTV',             color:'#2563eb', emoji:'📷'},
-};
-
-const WMS_LAYER = {
-  women:    {label:'여성밤길안전',   color:'#db2777'},
-  elder_c:  {label:'노인범죄주의',   color:'#ea580c'},
-  children: {label:'어린이범죄주의', color:'#ca8a04'},
-  cctv:     {label:'CCTV',          color:'#2563eb'},
-  cpted:    {label:'범죄예방환경설계', color:'#b45309'},
-};
-
-const GROUP = {
-  child: {label:'아동',  color:'#059669', emoji:'🧒',  xml:['bell','police','child_house','cctv'], wms:['children'], special:'child_house'},
-  youth: {label:'청소년',color:'#db2777', emoji:'🚶‍♀️', xml:['bell','police','child_house','cctv'], wms:['women'], special:null},
-  elder: {label:'노인',  color:'#ea580c', emoji:'👴',  xml:['bell','police','cctv'],        wms:['elder_c'], special:null},
-  cpted: {label:'CPTED', color:'#b45309', emoji:'🏗',  xml:[],                          wms:['cpted'], special:null},
-};
-
-/* ── 상태 ── */
-let map, myMark, myLat, myLng, grp=null;
-let layers={}, wmsTiles={}, chipOn={}, counts={};
-let watchId=null;
-let mapDomCleanups=[];
-
-/* ── 인트로 ── */
-function pick(el){
-  document.querySelectorAll('.age-card').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  grp=el.dataset.group;
-  document.getElementById('startBtn').classList.add('on');
-}
-
-function start(){
-  if(!grp) return;
-  document.getElementById('intro').classList.add('out');
-  document.getElementById('map-screen').classList.add('show');
-  document.getElementById('sheet').classList.add('show');
-  initMap();
-}
-
-function startCpted(){
-  grp='cpted';
-  document.querySelectorAll('.age-card').forEach(c=>c.classList.remove('selected'));
-  document.getElementById('startBtn').classList.remove('on');
-  document.getElementById('intro').classList.add('out');
-  document.getElementById('map-screen').classList.add('show');
-  document.getElementById('sheet').classList.add('show');
-  initMap();
-}
-
-function goBack(){
-  document.getElementById('intro').classList.remove('out');
-  document.getElementById('map-screen').classList.remove('show');
-  document.getElementById('sheet').classList.remove('show','open');
-
-  if(watchId){
-    navigator.geolocation.clearWatch(watchId);
-    watchId=null;
-  }
-
-  mapDomCleanups.forEach(fn=>fn());
-  mapDomCleanups=[];
-
-  if(map){
-    map.remove();
-    map=null;
-  }
-
-  myMark=null;
-  layers={};
-  wmsTiles={};
-  chipOn={};
-  counts={};
-}
-
-/* ── 지도 ── */
-function initMap(){
-  map = L.map('map',{zoomControl:false,attributionControl:false,tap:false,tapTolerance:15}).setView([36.5,127.8],7);
-
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    {maxZoom:19,subdomains:'abcd'}).addTo(map);
-
-  buildChips();
-  initSheet();
-  getGPS();
-}
-
-function buildChips(){
-  const g=GROUP[grp];
-  const c=document.getElementById('chips');
-  c.innerHTML='';
-
-  g.xml.forEach(key=>{
-    const m=LAYER[key];
-    chipOn[key]=true;
-
-    const row=document.createElement('div');
-    row.className='chip-row';
-    row.innerHTML=`
-      <div class="chip-left">
-        <span class="chip-dot" style="background:${m.color}"></span>
-        <div>
-          <div class="chip-label">${m.emoji} ${m.label}</div>
-        </div>
-      </div>
-      <button type="button" class="toggle on" aria-pressed="true"
-        data-kind="xml" data-key="${key}" onclick="toggleChip(event,this)">
-        <div class="toggle-track"></div>
-        <div class="toggle-thumb"></div>
-      </button>`;
-    c.appendChild(row);
-  });
-
-  g.wms.forEach(key=>{
-    const m=WMS_LAYER[key];
-    const defaultOn = key === 'cpted' ? grp === 'cpted' : key !== 'cctv';
-    chipOn['w_'+key]=defaultOn;
-
-    const row=document.createElement('div');
-    row.className='chip-row';
-    row.innerHTML=`
-      <div class="chip-left">
-        <span class="chip-dot" style="background:${m.color}"></span>
-        <div>
-          <div class="chip-label">🗺 ${m.label}</div>
-        </div>
-      </div>
-      <button type="button" class="toggle ${defaultOn?'on':''}" aria-pressed="${defaultOn?'true':'false'}"
-        data-kind="wms" data-key="${key}" onclick="toggleChip(event,this)">
-        <div class="toggle-track"></div>
-        <div class="toggle-thumb"></div>
-      </button>`;
-    c.appendChild(row);
-  });
-
-  const t=document.getElementById('gTag');
-  const g2=GROUP[grp];
-  t.textContent=g2.emoji+' '+g2.label;
-  t.className='group-tag '+grp;
-}
-
-/* 모바일 안정형 토글 처리 */
-function toggleChip(e, btn){
-  e.preventDefault();
-  e.stopPropagation();
-
-  const kind = btn.dataset.kind;
-  const key = btn.dataset.key;
-  const next = btn.getAttribute('aria-pressed') !== 'true';
-
-  btn.setAttribute('aria-pressed', next ? 'true' : 'false');
-  btn.classList.toggle('on', next);
-
-  if(kind === 'xml'){
-    chipOn[key] = next;
-
-    if(layers[key]){
-      next ? map.addLayer(layers[key]) : map.removeLayer(layers[key]);
-    }else if(next){
-      fetchLayer(key).then(()=>updateStats());
-    }
-
-    updateStats();
-    return;
-  }
-
-  if(kind === 'wms'){
-    chipOn['w_' + key] = next;
-
-    if(!wmsTiles[key]) return;
-
-    try{
-      const container = wmsTiles[key].getContainer();
-      if(container){
-        container.style.display = next ? '' : 'none';
-      }else{
-        wmsTiles[key].setOpacity(next ? 0.5 : 0);
-      }
-    }catch(err){
-      wmsTiles[key].setOpacity(next ? 0.5 : 0);
-    }
-  }
-}
-
-/* 기존 함수는 혹시 다른 코드에서 호출할 경우를 대비해 유지 */
-function toggleXML(key){
-  chipOn[key]=!chipOn[key];
-  if(layers[key]){
-    chipOn[key]?map.addLayer(layers[key]):map.removeLayer(layers[key]);
-  } else if(chipOn[key]){
-    fetchLayer(key).then(()=>updateStats());
-  }
-  updateStats();
-}
-
-function toggleWMS(key){
-  chipOn['w_'+key]=!chipOn['w_'+key];
-  if(!wmsTiles[key]) return;
-  const on=chipOn['w_'+key];
-  try{
-    const container=wmsTiles[key].getContainer();
-    if(container) container.style.display=on?'':'none';
-    else wmsTiles[key].setOpacity(on?0.5:0);
-  }catch(e){
-    wmsTiles[key].setOpacity(on?0.5:0);
-  }
-}
-
-/* ── GPS ── */
-function getGPS(){
-  if(!navigator.geolocation){
-    useDefault();
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    p=>{
-      myLat=p.coords.latitude;
-      myLng=p.coords.longitude;
-      onLocated();
-    },
-    ()=>useDefault(),
-    {timeout:7000,enableHighAccuracy:true}
-  );
-
-  watchId=navigator.geolocation.watchPosition(
-    p=>{
-      myLat=p.coords.latitude;
-      myLng=p.coords.longitude;
-      drawMe();
-    },
-    ()=>{},
-    {enableHighAccuracy:true,maximumAge:3000}
-  );
-}
-
-function useDefault(){
-  myLat=36.0190;
-  myLng=129.3435;
-  onLocated();
-}
-
-function onLocated(){
-  map.setView([myLat,myLng],15);
-  drawMe();
-  revGeo();
-  addWMS();
-  fetchAll();
-
-  let moveTimer=null;
-  map.on('moveend',()=>{
-    clearTimeout(moveTimer);
-    moveTimer=setTimeout(()=>fetchAll(true),500);
-  });
-
-  async function handleCptedTap(latlng){
-    if(!chipOn['w_cpted']||!wmsTiles['cpted']) return;
-
-    const spinner=document.getElementById('map-spinner');
-    if(spinner) spinner.classList.add('show');
-
-    const clickPt=L.CRS.EPSG3857.project(latlng);
-
-    // CPTED는 점 마커가 아니라 구역형 WMS라서, 터치 지점 300m만 조회하면 대표 좌표가 범위 밖으로 빠질 수 있음.
-    // 그래서 현재 화면 범위를 기준으로 CPTED 목록을 가져온 뒤, 터치 지점과 가장 가까운 항목을 골라 팝업으로 표시함.
-    const b=map.getBounds().pad(0.25);
-    const nw=L.CRS.EPSG3857.project(b.getNorthWest());
-    const se=L.CRS.EPSG3857.project(b.getSouthEast());
-
-    const params=new URLSearchParams({
-      top:nw.y,
-      bottom:se.y,
-      left:nw.x,
-      right:se.x,
-      layer:'A2SM_CPTED_G',
-      style:'A2SM_CPTED_G',
-      currentPage:'1',
-      perPage:'200'
-    });
-
-    try{
-      const res=await fetch('https://www.safemap.go.kr/com/cmm/getMapLayerListPost.json',{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:params
-      });
-
-      const data=await res.json();
-      const items=(data.layerList||[]).filter(it=>it.x&&it.y);
-
-      if(items.length===0){
-        L.popup({className:'safepopup',closeButton:true,maxWidth:260})
-          .setLatLng(latlng)
-          .setContent(`
-            <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
-            <div class="ptitle">조회 가능한 CPTED 정보 없음</div>
-            <div class="prow">현재 화면 주변에서 CPTED 상세 정보를 찾지 못했습니다.</div>
-          `).openOn(map);
-        return;
-      }
-
-      let closest=null;
-      let minDist=Infinity;
-
-      items.forEach(it=>{
-        const x=parseFloat(it.x);
-        const y=parseFloat(it.y);
-        if(isNaN(x)||isNaN(y)) return;
-
-        const dx=x-clickPt.x;
-        const dy=y-clickPt.y;
-        const dist=Math.sqrt(dx*dx+dy*dy);
-
-        if(dist<minDist){
-          minDist=dist;
-          closest=it;
-        }
-      });
-
-      if(!closest){
-        L.popup({className:'safepopup',closeButton:true,maxWidth:260})
-          .setLatLng(latlng)
-          .setContent(`
-            <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
-            <div class="ptitle">CPTED 정보 확인 불가</div>
-            <div class="prow">가장 가까운 구역 정보를 계산하지 못했습니다.</div>
-          `).openOn(map);
-        return;
-      }
-
-      const addr=closest.adres||closest.roadnm_add||closest.jibun_addr||'';
-      const district=closest.jurisd_inst_nm||closest.jp_nm||'';
-      const distText=minDist<1000?`${Math.round(minDist)}m`:`${(minDist/1000).toFixed(1)}km`;
-
-      L.popup({className:'safepopup',closeButton:true,maxWidth:270})
-        .setLatLng(latlng)
-        .setContent(`
-          <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
-          <div class="ptitle">가까운 CPTED 구역</div>
-          ${addr?`<div class="prow">📍 ${addr}</div>`:''}
-          ${district?`<div class="prow">🏢 ${district}</div>`:''}
-          <div class="prow" style="color:#b45309">터치 지점 기준 약 ${distText}</div>
-          ${closest.totcnt?`<div class="prow">현재 화면 내 ${closest.totcnt}개 구역 조회</div>`:''}
-        `).openOn(map);
-    }catch(err){
-      console.warn('CPTED 정보 조회 실패',err);
-      L.popup({className:'safepopup',closeButton:true,maxWidth:260})
-        .setLatLng(latlng)
-        .setContent(`
-          <div class="pbadge" style="background:#b4530918;color:#b45309">🏗 범죄예방환경설계</div>
-          <div class="ptitle">CPTED 정보 조회 실패</div>
-          <div class="prow">공공데이터 서버 응답이 없거나 일시적으로 차단되었습니다.</div>
-        `).openOn(map);
-    }finally{
-      if(spinner) spinner.classList.remove('show');
-    }
-  }
-
-  map.on('click', e=>handleCptedTap(e.latlng));
-
-  // 모바일 보강: Leaflet click 변환이 실패해도 pointerup으로 직접 좌표를 계산해 CPTED 조회
-  const mapEl=map.getContainer();
-  let pointerStart=null;
-
-  const onPointerDown=e=>{
-    if(e.pointerType==='mouse') return;
-    pointerStart={x:e.clientX,y:e.clientY,t:Date.now()};
+(function(){
+  var store = {
+    get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},
+    set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}
   };
 
-  const onPointerUp=e=>{
-    if(e.pointerType==='mouse'||!pointerStart) return;
-
-    const dx=e.clientX-pointerStart.x;
-    const dy=e.clientY-pointerStart.y;
-    const dt=Date.now()-pointerStart.t;
-    pointerStart=null;
-
-    // 지도 이동/드래그는 터치로 처리하지 않음
-    if(Math.sqrt(dx*dx+dy*dy)>12||dt>900) return;
-
-    const rect=mapEl.getBoundingClientRect();
-    const pt=L.point(e.clientX-rect.left,e.clientY-rect.top);
-    handleCptedTap(map.containerPointToLatLng(pt));
-  };
-
-  mapEl.addEventListener('pointerdown',onPointerDown,{passive:true});
-  mapEl.addEventListener('pointerup',onPointerUp,{passive:true});
-  mapDomCleanups.push(()=>{
-    mapEl.removeEventListener('pointerdown',onPointerDown);
-    mapEl.removeEventListener('pointerup',onPointerUp);
-  });
-}
-
-function drawMe(){
-  if(!map || !myLat || !myLng) return;
-  if(myMark)map.removeLayer(myMark);
-
-  const g=GROUP[grp];
-  const icon=L.divIcon({
-    html:`<div style="width:42px;height:42px;border-radius:50%;background:${g.color};border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 3px 12px rgba(0,0,0,.25);">${g.emoji}</div>`,
-    className:'',
-    iconSize:[42,42],
-    iconAnchor:[21,21]
-  });
-
-  myMark=L.marker([myLat,myLng],{icon,zIndexOffset:1000}).addTo(map);
-  myMark.bindPopup(`<div class="ptitle">📍 현재 내 위치</div><div class="prow">반경 ${R_KM}km 내 안전시설을 표시합니다</div>`);
-}
-
-function flyHome(){
-  if(myLat&&myLng&&map){
-    map.flyTo([myLat,myLng],15,{duration:1});
-  }
-}
-
-function revGeo(){
-  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${myLat}&lon=${myLng}&format=json&accept-language=ko`)
-    .then(r=>r.json())
-    .then(d=>{
-      const a=d.address||{};
-      document.getElementById('locTxt').textContent=a.city_district||a.suburb||a.neighbourhood||a.county||'위치 확인됨';
-    })
-    .catch(()=>{
-      document.getElementById('locTxt').textContent='위치 확인됨';
-    });
-}
-
-/* ── WMS ── */
-const SafemapWMS4326 = L.TileLayer.extend({
-  getTileUrl: function(coords){
-    const b = this._tileCoordsToBounds(coords);
-    const bbox = [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');
-    return this._url
-      + '?serviceKey=' + API_KEY
-      + '&srs=EPSG:4326'
-      + '&bbox=' + bbox
-      + '&format=image/png&width=256&height=256&transparent=TRUE';
-  }
-});
-
-const SafemapWMS3857 = L.TileLayer.extend({
-  getTileUrl: function(coords){
-    const b = this._tileCoordsToBounds(coords);
-    const bbox = [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');
-    return this._url
-      + '?serviceKey=' + API_KEY
-      + '&layers=A2SM_CCTV_INFO'
-      + '&styles='
-      + '&srs=EPSG:3857'
-      + '&bbox=' + bbox
-      + '&format=image/png&width=256&height=256&transparent=TRUE';
-  }
-});
-
-function addWMS(){
-  GROUP[grp].wms.forEach(key=>{
-    try{
-      const url = WMS_API[key];
-      if(!url){
-        console.warn('WMS URL 없음:',key);
-        return;
-      }
-
-      let t;
-      if(key==='cpted'){
-        t = L.tileLayer.wms(url,{
-          layers:'A2SM_CPTED_G',
-          format:'image/png',
-          transparent:true,
-          version:'1.3.0',
-          tiled:true,
-          opacity:0.5,
-          tileSize:256,
-        });
-      } else {
-        t = new SafemapWMS4326(url, {opacity:0.5, tileSize:256});
-      }
-
-      t.addTo(map);
-      wmsTiles[key]=t;
-
-      if(!chipOn['w_'+key]){
-        setTimeout(()=>{
-          try{
-            const c=t.getContainer();
-            if(c) c.style.display='none';
-            else t.setOpacity(0);
-          }catch(e){
-            t.setOpacity(0);
-          }
-        },100);
-      }
-    }catch(e){
-      console.warn('WMS 오류',key,e);
+  /* sampling demo — 가상 데이터: 1학년 70%, 2학년 50%, 3학년 30% 자주 이용 (각 100명, 4개 반 × 25명) */
+  var RATES=[70,50,30];
+  var gradesEl=document.getElementById('grades');
+  var dots=[];
+  gradesEl.innerHTML=[0,1,2].map(function(g){
+    var html='<div class="grade"><span class="gl">'+(g+1)+'학년 (100명)</span><div class="dots">';
+    for(var j=0;j<100;j++){
+      var yes=((j*37)%100)<RATES[g];
+      html+='<i class="dot'+(yes?' y':'')+'" data-g="'+g+'" data-c="'+Math.floor(j/25)+'"></i>';
     }
-  });
-}
-
-/* ── XML 데이터 ── */
-async function fetchAll(silent=false){
-  const spinner=document.getElementById('map-spinner');
-  if(spinner) spinner.classList.add('show');
-
-  try{
-    GROUP[grp].xml.forEach(k=>{
-      if(layers[k]){
-        map.removeLayer(layers[k]);
-        layers[k]=null;
-      }
+    return html+'</div></div>';
+  }).join('');
+  dots=Array.prototype.slice.call(gradesEl.querySelectorAll('.dot'));
+  var SAMPLES={
+    g1:function(g,c){return g===0&&c===0},
+    g3:function(g,c){return g===2&&c===0},
+    mix:function(g,c){return c===0},
+    all:function(){return true}
+  };
+  var optBtns=Array.prototype.slice.call(document.querySelectorAll('.opts .btn'));
+  function sample(key){
+    var n=0,y=0;
+    dots.forEach(function(d){
+      var on=SAMPLES[key](+d.dataset.g,+d.dataset.c);
+      d.classList.toggle('s',on);
+      if(on){n++; if(d.classList.contains('y')) y++;}
     });
-
-    await Promise.allSettled(GROUP[grp].xml.map(k=>fetchLayer(k)));
-    updateStats();
-  }catch(e){
-    console.warn('fetchAll 오류:',e);
-  }finally{
-    if(spinner) spinner.classList.remove('show');
+    var pct=Math.round(y/n*100);
+    var est=document.getElementById('est');
+    est.textContent=pct+'%';
+    est.classList.toggle('gap',Math.abs(pct-50)>=10);
+    optBtns.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.s===key?'true':'false')});
   }
-}
+  optBtns.forEach(function(b){b.addEventListener('click',function(){sample(b.dataset.s)})});
+  sample('g1');
 
-async function fetchLayer(key){
-  const cfg=LAYER_API[key];
-  if(!cfg){
-    console.warn('['+key+'] LAYER_API 없음');
-    return;
+  /* stages */
+  var STAGES = [
+    {t:"문제 정의", q:"누구를 위한 해결책인가요? 그 과정에서 빠지는 사람은 없나요?", tags:["다양성 존중","공공성"],
+     ex:{
+      env:["미세먼지 알림 앱을 만들면, 스마트폰 알림을 받기 어려운 어린이나 어르신은 정보를 못 받아요.","학교 현관 LED 표시판처럼 앱 없이도 볼 수 있는 방법을 함께 설계해요."],
+      traffic:["등굣길 위험 구간 지도가 걷는 학생 기준으로만 만들어지면, 휠체어나 유모차 이용자에게 필요한 정보가 빠져요.","경사로·턱 높이처럼 다른 이용자에게 필요한 정보도 넣을 수 있는지 검토해요."],
+      welfare:["어르신 운동량 분석을 스마트워치 데이터로만 하면, 기기가 없는 어르신은 아예 분석에서 빠져요.","경로당 설문이나 걸음 수 기록지 같은 다른 수집 방법을 함께 써요."],
+      school:["매점 혼잡도 예측을 앱으로만 알려 주면, 휴대폰을 낸 학생이나 앱이 없는 학생은 볼 수 없어요.","복도 게시 화면처럼 누구나 볼 수 있는 방식도 함께 준비해요."]
+     }},
+    {t:"데이터 수집·전처리", q:"꼭 필요한 데이터만, 동의를 받고, 출처를 밝혀 모았나요? 한쪽으로 치우치지 않았나요?", tags:["프라이버시 보호","데이터 관리"],
+     ex:{
+      env:["측정소가 도심에 몰려 있으면, 그 데이터로 농촌 지역 공기 질을 판단하기 어려워요.","측정소 위치를 지도에 표시하고, 데이터가 부족한 지역은 결과 해석에서 따로 밝혀요. 공공데이터는 출처와 이용 조건을 적어요."],
+      traffic:["현장에서 직접 촬영하면 지나가는 사람 얼굴이나 차량 번호판이 그대로 찍혀요.","개인을 알아볼 수 있는 부분은 촬영하지 않거나 가리고, 가능하면 사람 수처럼 합쳐진(집계) 데이터를 써요."],
+      welfare:["건강 정보는 「개인정보 보호법」에서 '민감정보'로 따로 보호해요. 이름과 함께 모으면 더 위험해요.","이름 대신 번호를 쓰고, 분석에 꼭 필요한 문항만 물어요. 동의서에 사용 목적과 삭제 시점을 적어요."],
+      school:["우리 반만 설문하고 '전교생은 이렇다'고 결론 내리면 결과가 치우쳐요.","학년·반을 고르게 조사하고, 설문에서 이름·학번은 받지 않아요."]
+     }},
+    {t:"모델링", q:"예측하려는 값이 알고 싶은 것을 제대로 나타내나요? 결과를 설명할 수 있나요?", tags:["투명성","책임성"],
+     ex:{
+      env:["AI 예측을 정답처럼 보여 주면, 틀렸을 때 사람들이 잘못 판단할 수 있어요.","예측값과 함께 정확도나 오차 범위를 표시해요."],
+      traffic:["사고 건수가 많은 곳을 '위험 지역'으로 정하면, 사실은 사람이 많이 다녀서 사고가 많은 것일 수도 있어요.","유동인구 대비 사고 비율처럼 기준을 맞춰서 비교해요."],
+      welfare:["평균 기준으로 '운동 부족'을 판정하면 나이나 몸 상태 차이를 무시하게 돼요.","연령대별로 결과를 나눠 보고, 특정 집단만 계속 불리하게 나오는지 확인해요."],
+      school:["생성형 AI가 짜 준 코드를 이해하지 못한 채 쓰면, 결과가 틀려도 이유를 설명할 수 없어요.","코드가 하는 일을 팀원이 설명할 수 있을 때까지 확인하고, 사용한 AI 도구를 밝혀요."]
+     }},
+    {t:"활용", q:"AI나 장치가 틀리거나 고장 나면 누가 피해를 보나요? 최종 판단은 사람이 하나요?", tags:["안전성","침해 금지"],
+     ex:{
+      env:["센서가 고장 나서 계속 '좋음'만 표시하면, 사람들이 나쁜 공기를 그대로 마시게 돼요.","센서 값이 이상하면 '점검 중'으로 바뀌게 만들어요."],
+      traffic:["횡단보도 경고 장치가 다가오는 차를 놓치면(미탐지), 오히려 장치를 믿은 사람이 더 위험해져요.","장치는 보조 역할로 두고, 기존 신호와 보행자의 직접 확인이 먼저라고 안내해요."],
+      welfare:["낙상 감지 장치가 너무 자주 잘못 울리면 보호자가 알림을 무시하게 되고, 놓치면 위험해요.","알림이 오면 보호자가 확인하는 단계를 두고, 두 가지 오류 중 무엇이 더 위험한지 정해서 기준값을 조정해요."],
+      school:["교실 전기 자동 절약 장치가 수업 중에 조명을 꺼 버리면 수업에 방해가 돼요.","사람이 언제든 직접 켜고 끌 수 있게 하고, 수동 조작을 우선으로 해요."]
+     }}
+  ];
+  var stagesEl=document.getElementById('stages');
+  function renderStages(d){
+    stagesEl.innerHTML=STAGES.map(function(s,i){
+      var e=s.ex[d];
+      return '<article class="stage"><div class="no" aria-hidden="true">'+(i+1)+'</div>'+
+        '<h3>'+s.t+'</h3><p class="q">'+s.q+'</p>'+
+        '<div class="tags">'+s.tags.map(function(t){return '<span class="tag">'+t+'</span>'}).join('')+'</div>'+
+        '<div class="ex"><div class="risk"><span class="lbl">이런 문제가 생길 수 있어요</span>'+e[0]+'</div>'+
+        '<div class="fix"><span class="lbl">이렇게 설계해요</span>'+e[1]+'</div></div></article>';
+    }).join('');
   }
-
-  const bounds=map.getBounds();
-
-  const area4326=[
-    bounds.getNorth(),bounds.getSouth(),
-    bounds.getWest(),bounds.getEast()
-  ].join(',');
-
-  const nw=L.CRS.EPSG3857.project(bounds.getNorthWest());
-  const se=L.CRS.EPSG3857.project(bounds.getSouthEast());
-  const area3857=[nw.y,se.y,nw.x,se.x].join(',');
-
-  const params=new URLSearchParams({
-    layerName:cfg.layer,
-    style:cfg.style,
-    area4326,
-    area3857,
-    currentPage:'1',
-    perPage:'500'
-  });
-
-  try{
-    const ctrl=new AbortController();
-    setTimeout(()=>ctrl.abort(),10000);
-
-    const res=await fetch(MARKER_API,{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:params,
-      signal:ctrl.signal
-    });
-
-    const data=await res.json();
-    const items=data.resultList||[];
-
-    if(items.length===0) throw new Error('no items');
-
-    const lg=L.layerGroup();
-    let cnt=0;
-
-    items.forEach(it=>{
-      let lat=parseFloat(it.lat||0);
-      let lng=parseFloat(it.lon||0);
-
-      if(!lat||!lng){
-        const px=parseFloat(it.x||0);
-        const py=parseFloat(it.y||0);
-        if(px&&py){
-          const pt=L.CRS.EPSG3857.unproject(L.point(px,py));
-          lat=pt.lat;
-          lng=pt.lng;
-        }
-      }
-
-      if(!lat||!lng||isNaN(lat)||isNaN(lng)) return;
-      mkMarker(key,lat,lng,it).addTo(lg);
-      cnt++;
-    });
-
-    lg.addTo(map);
-    layers[key]=lg;
-    counts[key]=cnt;
-
-    if(!chipOn[key]) map.removeLayer(lg);
-
-    updateStats();
-    console.log('['+key+'] 로드완료:'+cnt+'개');
-  }catch(e){
-    console.warn('['+key+'] 실패:',e.message);
+  var tabs=Array.prototype.slice.call(document.querySelectorAll('.tabs button'));
+  function selectTab(d){
+    tabs.forEach(function(b){b.setAttribute('aria-selected',b.dataset.d===d?'true':'false')});
+    renderStages(d); store.set('ethics-domain',d);
   }
-}
+  tabs.forEach(function(b){b.addEventListener('click',function(){selectTab(b.dataset.d)})});
+  var savedD=store.get('ethics-domain');
+  selectTab(['env','traffic','welfare','school'].indexOf(savedD)>-1?savedD:'env');
 
-function xv(it,tag){
-  return it&&it[tag]!=null?String(it[tag]).trim():'';
-}
+  /* checklist */
+  var CHECKS=[
+    ["우리 해결책에서 소외되는 사람은 없나요?","스마트폰이 없는 사람, 장애가 있는 사람, 다른 학년 등을 떠올려 보세요."],
+    ["꼭 필요한 데이터만 모으고, 동의와 출처 표기를 했나요?","직접 모은 데이터는 동의, 공공데이터는 출처와 이용 조건을 확인해요."],
+    ["데이터가 한쪽으로 치우치지 않았나요?","특정 반·지역·시간대만 모으지 않았는지 확인해요."],
+    ["예측하는 값이 알고 싶은 것을 제대로 나타내고, 결과를 설명할 수 있나요?","생성형 AI로 만든 코드도 팀원이 설명할 수 있어야 해요."],
+    ["AI나 장치가 틀리거나 고장 나면 어떤 피해가 생기고, 어떻게 대비하나요?","놓치는 경우와 잘못 알리는 경우를 둘 다 생각해 봐요."]
+  ];
+  var listEl=document.getElementById('checkList');
+  var saved=[];
+  try{saved=JSON.parse(store.get('ethics-checks')||'[]')||[]}catch(e){saved=[]}
+  listEl.innerHTML=CHECKS.map(function(c,i){
+    return '<li><label for="chk'+i+'"><input type="checkbox" id="chk'+i+'"'+(saved[i]?' checked':'')+'>'+
+      '<span class="t">'+(i+1)+'. '+c[0]+'</span><span class="d">'+c[1]+'</span></label></li>';
+  }).join('');
+  var boxes=Array.prototype.slice.call(listEl.querySelectorAll('input'));
+  boxes.forEach(function(b){b.addEventListener('change',function(){
+    store.set('ethics-checks',JSON.stringify(boxes.map(function(x){return x.checked})));
+  })});
 
-function near(lat,lng){
-  const R=6371;
-  const dl=(myLat-lat)*Math.PI/180;
-  const dg=(myLng-lng)*Math.PI/180;
-  const a=Math.sin(dl/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(myLat*Math.PI/180)*Math.sin(dg/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))<=R_KM;
-}
-
-/* ── 마커 ── */
-function mkMarker(key,lat,lng,it){
-  const m=LAYER[key];
-  let name='',addr='',extra='';
-
-  if(key==='bell'){
-    name=xv(it,'ins_detail')||xv(it,'rn_adres')||'안전비상벨';
-    addr=xv(it,'rn_adres')||xv(it,'adres')||'';
-    const pc=xv(it,'flag_pol_l')||'';
-    extra=pc==='Y'?'<span style="color:#059669">✓ 경찰 연계</span>':'<span style="color:#dc2626">✗ 경찰 미연계</span>';
-    const tel=xv(it,'mng_tel')||'';
-    if(tel) extra+=`<br><span style="color:#64748b">📞 ${tel}</span>`;
-  }else if(key==='police'){
-    name=xv(it,'fclty_nm')||'치안시설';
-    addr=xv(it,'rn_adres')||xv(it,'adres')||'';
-    const tp=xv(it,'fclty_ty')||'';
-    const tel=xv(it,'telno')||'';
-    extra=(tp?`<span style="color:#7c3aed">${tp}</span> `:'')+
-          (tel?`<span style="color:#64748b">📞 ${tel}</span>`:'');
-  }else if(key==='cctv'){
-    name=xv(it,'TITLE')||xv(it,'title')||'CCTV';
-    addr=xv(it,'lctn_rona_addr')||xv(it,'lctn_lotno_addr')||'';
-    const prps=xv(it,'instl_prps_se')||'';
-    const cnt=xv(it,'cmr_cntom')||'';
-    const tel=xv(it,'mng_inst_telno')||'';
-    extra=(prps?`<span style="color:#2563eb">${prps}</span> `:'')+
-          (cnt?`<span style="color:#64748b">📷 ${cnt}대</span> `:'')+
-          (tel?`<span style="color:#64748b">📞 ${tel}</span>`:'');
-  }else if(key==='child_house'){
-    name=xv(it,'fclty_nm')||'아동안전지킴이집';
-    addr=xv(it,'rn_adres')||xv(it,'adres')||'';
-    const tel=xv(it,'telno')||'';
-    extra='<span style="color:#059669">🏠 아동 보호</span>'+(tel?` <span style="color:#64748b">📞 ${tel}</span>`:'');
-  }else if(key==='cpted'){
-    name=xv(it,'roadnm_add')||xv(it,'jibun_addr')||'범죄예방환경설계';
-    addr=xv(it,'roadnm_add')||'';
-    const tp=xv(it,'dsign_prps')||'';
-    const jp=xv(it,'jp_nm')||'';
-    extra=(tp?`<span style="color:#b45309">${tp}</span> `:'')+
-          (jp?`<span style="color:#64748b">📍 ${jp}</span>`:'');
+  /* big text */
+  var bigBtn=document.getElementById('bigBtn');
+  function setBig(on){
+    document.documentElement.classList.toggle('big',on);
+    bigBtn.setAttribute('aria-pressed',on?'true':'false');
+    store.set('ethics-big',on?'1':'0');
   }
-
-  const icon=L.divIcon({
-    html:`<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:2.5px solid ${m.color};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.18);">${m.emoji}</div>`,
-    className:'',
-    iconSize:[36,36],
-    iconAnchor:[18,18]
-  });
-
-  return L.marker([lat,lng],{icon}).bindPopup(
-    L.popup({className:'safepopup',closeButton:true,maxWidth:240}).setContent(`
-      <div class="pbadge" style="background:${m.color}18;color:${m.color}">${m.emoji} ${m.label}</div>
-      <div class="ptitle">${name}</div>
-      ${addr?`<div class="prow">📍 ${addr}</div>`:''}
-      ${extra?`<div class="prow">${extra}</div>`:''}
-    `)
-  );
-}
-
-/* ── 통계 ── */
-function updateStats(){
-  const bar=document.getElementById('statsBar');
-  if(!bar || !grp) return;
-
-  const g=GROUP[grp];
-  const items=[];
-
-  g.xml.forEach(key=>{
-    const m=LAYER[key];
-    if(!m) return;
-    const cnt=counts[key]||0;
-    items.push(`<div class="stat-item">
-      <span class="stat-emoji">${m.emoji}</span>
-      <div class="stat-info">
-        <span class="stat-num" style="color:${m.color}">${cnt}</span>
-        <span class="stat-lbl">${m.label}</span>
-      </div>
-    </div>`);
-  });
-
-  bar.style.display=items.length?'flex':'none';
-  bar.innerHTML=items.join('');
-}
-
-window.onload=()=>{
-  if(typeof L==='undefined'){
-    document.getElementById('loadTxt').textContent='지도 라이브러리 로드 실패. 인터넷 연결 확인 후 새로고침하세요.';
-    return;
-  }
-  document.getElementById('loading').classList.add('hide');
-};
+  bigBtn.addEventListener('click',function(){setBig(!document.documentElement.classList.contains('big'))});
+  setBig(store.get('ethics-big')==='1');
+})();
 </script>
-</body>
-</html>
+
+</body></html>
